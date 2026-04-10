@@ -6,3 +6,5 @@ Transcription_Report.txt
 MAYFLOWER_SUBMISSION_DRAFT.txt
 __pycache__/
 .DS_Store
+.env
+Recon_Report_*.txt

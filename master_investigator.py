@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
 from langchain_tavily import TavilySearch
 from duckduckgo_search import DDGS
@@ -6,7 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 # 1. Credentials
-os.environ["TAVILY_API_KEY"] = "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"
+load_dotenv()
 
 # 2. Initialize the Uncensored Brain
 llm = ChatOllama(model="dolphin-mixtral", temperature=0.1)

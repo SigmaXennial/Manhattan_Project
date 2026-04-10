@@ -3,7 +3,8 @@ import os
 # --- TARGET ASSETS ---
 SCRIPTS = [
     "bot.py", "master_investigator.py", "analyze_tree.py", 
-    "transcribe_doc.py", "compiler.py", "evidence_locker.py"
+    "transcribe_doc.py", "compiler.py", "evidence_locker.py",
+    "search_agent.py", "external_recon.py", "test_brain.py"
 ]
 
 DATA_FILES = ["bissell.ged", "document.jpg"]

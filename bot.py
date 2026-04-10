@@ -51,7 +51,13 @@ def main_menu():
         input("\nPress Enter to return...")
         main_menu()
     elif choice == "4":
-        os.system(f"open {LOG_FILE}")
+        # Cross-platform file open
+        if sys.platform == "darwin":
+            os.system(f"open {LOG_FILE}")
+        elif sys.platform == "win32":
+            os.system(f"start {LOG_FILE}")
+        else:
+            os.system(f"xdg-open {LOG_FILE} 2>/dev/null || cat {LOG_FILE}")
         main_menu()
     elif choice == "5":
         log_event("COMPILER", "Generated submission draft.")
