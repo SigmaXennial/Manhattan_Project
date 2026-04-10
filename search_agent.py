@@ -1,14 +1,14 @@
 import os
 from datetime import datetime
 from langchain_ollama import ChatOllama
-from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_tavily import TavilySearch
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 # 1. Setup
 os.environ["TAVILY_API_KEY"] = "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"
 llm = ChatOllama(model="deepseek-r1:14b", temperature=0)
-search = TavilySearchResults(k=5)
+search = TavilySearch(max_results=5)
 
 # 2. Define the Search Query
 query = "John Bissell 1635 Abigail passenger list Olive Tree Genealogy Winthrop Society"
@@ -17,7 +17,7 @@ print(f"\n--- Manhattan Project: Executing Direct Recon ---")
 print(f"Target: {query}")
 
 # 3. Get Raw Data from the Web
-search_results = search.run(query)
+search_results = search.invoke({"query": query})
 
 # 4. Feed data to DeepSeek for analysis
 prompt = ChatPromptTemplate.from_template("""
