@@ -1,111 +1,173 @@
-import os
-import re
-from langchain_ollama import ChatOllama
-from langchain_core.prompts import ChatPromptTemplate
+from __future__ import annotations
+
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama import ChatOllama
 
-# 1. Initialize the Uncensored Brain
-llm = ChatOllama(model="dolphin-mixtral", temperature=0.1)
+from gedcom_parser import parse_gedcom, resolve_scope
+from genealogy_models import Event, Family, Person, TreeData
+from report_utils import format_list, write_report
 
-filename = "bissell.ged"
-report_file = "Bissell_Lineage_Report.txt"
-print(f"\n[+] Parsing {filename} with structural integrity...")
+REPORT_FILE = "Tree_Structure_Report.txt"
 
-try:
-    individuals = {}
-    families = []
-    current_id = None
-    current_type = None
-    current_event = None
 
-    # 2. Database Extraction Logic
-    indi_re = re.compile(r"0 (@[A-Za-z0-9_]+@) INDI")
-    fam_re = re.compile(r"0 (@[A-Za-z0-9_]+@) FAM")
-    name_re = re.compile(r"1 NAME (.*)")
-    date_re = re.compile(r"2 DATE (.*)")
-    husb_re = re.compile(r"1 HUSB (@[A-Za-z0-9_]+@)")
-    wife_re = re.compile(r"1 WIFE (@[A-Za-z0-9_]+@)")
-    chil_re = re.compile(r"1 CHIL (@[A-Za-z0-9_]+@)")
+def format_event(event: Event | None) -> str:
+    if event is None:
+        return "Unknown"
+    parts = []
+    if event.date:
+        parts.append(event.date)
+    if event.place:
+        parts.append(event.place)
+    if not parts:
+        return "Unknown"
+    return " | ".join(parts)
 
-    with open(filename, 'r', encoding='utf-8', errors='replace') as f:
-        for line in f:
-            line = line.strip()
-            
-            indi_match = indi_re.match(line)
-            if indi_match:
-                current_id = indi_match.group(1)
-                current_type = "INDI"
-                individuals[current_id] = {"name": "Unknown", "birth": "Unknown", "death": "Unknown"}
-                continue
-                
-            fam_match = fam_re.match(line)
-            if fam_match:
-                current_type = "FAM"
-                families.append({"husb": None, "wife": None, "chil": []})
-                continue
-                
-            if current_type == "INDI":
-                if line.startswith("1 BIRT"): current_event = "BIRT"
-                elif line.startswith("1 DEAT"): current_event = "DEAT"
-                elif line.startswith("1 "): current_event = None 
-                    
-                name_match = name_re.match(line)
-                if name_match: individuals[current_id]["name"] = name_match.group(1).replace("/", "").strip()
-                    
-                date_match = date_re.match(line)
-                if date_match and current_event == "BIRT": individuals[current_id]["birth"] = date_match.group(1)
-                elif date_match and current_event == "DEAT": individuals[current_id]["death"] = date_match.group(1)
-                    
-            elif current_type == "FAM":
-                husb_match = husb_re.match(line)
-                if husb_match: families[-1]["husb"] = husb_match.group(1)
-                wife_match = wife_re.match(line)
-                if wife_match: families[-1]["wife"] = wife_match.group(1)
-                chil_match = chil_re.match(line)
-                if chil_match: families[-1]["chil"].append(chil_match.group(1))
 
-    # 3. Format Data into Individual Family Blocks
-    family_blocks = []
-    for fam in families:
-        husb = individuals.get(fam["husb"])
-        wife = individuals.get(fam["wife"])
-        husb_str = f"{husb['name']} (b. {husb['birth']}, d. {husb['death']})" if husb else "Unknown"
-        wife_str = f"{wife['name']} (b. {wife['birth']}, d. {wife['death']})" if wife else "Unknown"
-        children = [individuals.get(c_id, {}).get("name", "Unknown") for c_id in fam["chil"]]
-        
-        block = f"Husband: {husb_str}\nWife: {wife_str}\nChildren: {', '.join(children) if children else 'None'}\n"
-        family_blocks.append(block)
+def person_block(person: Person) -> str:
+    birth = format_event(person.get_event("BIRT"))
+    death = format_event(person.get_event("DEAT"))
+    residences = [format_event(event) for event in person.events if event.type == "RESI"]
+    residence_text = "; ".join(residences[:3]) if residences else "None recorded"
+    source_ids = ", ".join(sorted({ref.id for ref in person.source_refs if ref.id})) or "None listed"
+    return "\n".join(
+        [
+            f"{person.primary_name} ({person.id})",
+            f"Sex: {person.sex or 'Unknown'}",
+            f"Birth: {birth}",
+            f"Death: {death}",
+            f"Child in family: {person.family_as_child or 'Unknown'}",
+            f"Spouse families: {', '.join(person.families_as_spouse) or 'None'}",
+            f"Recent residences: {residence_text}",
+            f"Source references: {source_ids}",
+        ]
+    )
 
-    print(f"[+] Extracted {len(family_blocks)} family unions. Initiating Agentic Loop...")
 
-    # 4. The Agentic Loop
-    prompt = ChatPromptTemplate.from_template("""
-    You are an expert genealogical investigator. 
-    Draft a professional, factual narrative paragraph for the following family records. 
-    State the successions clearly. Do not use conclusion blocks or introductory fluff.
+def family_block(tree: TreeData, family: Family) -> str:
+    husband = tree.persons.get(family.husband_id)
+    wife = tree.persons.get(family.wife_id)
+    marriage = format_event(family.get_event("MARR"))
+    children = [tree.persons[child_id].primary_name for child_id in family.child_ids if child_id in tree.persons]
+    source_ids = ", ".join(sorted({ref.id for ref in family.source_refs if ref.id})) or "None listed"
+    return "\n".join(
+        [
+            f"Family {family.id}",
+            f"Spouses: {(husband.primary_name if husband else 'Unknown')} / {(wife.primary_name if wife else 'Unknown')}",
+            f"Marriage: {marriage}",
+            f"Children: {', '.join(children) if children else 'None recorded'}",
+            f"Source references: {source_ids}",
+        ]
+    )
 
-    RECORDS:
-    {data}
-    """)
-    chain = prompt | llm | StrOutputParser()
 
-    # Clear previous report if it exists
-    open(report_file, 'w').close()
+def family_summary_for_prompt(tree: TreeData, family: Family) -> str:
+    husband = tree.persons.get(family.husband_id)
+    wife = tree.persons.get(family.wife_id)
+    children = [tree.persons[child_id].primary_name for child_id in family.child_ids if child_id in tree.persons]
+    return "\n".join(
+        [
+            f"Family ID: {family.id}",
+            f"Husband: {husband.primary_name if husband else 'Unknown'} ({format_event(husband.get_event('BIRT')) if husband else 'Unknown'} - {format_event(husband.get_event('DEAT')) if husband else 'Unknown'})",
+            f"Wife: {wife.primary_name if wife else 'Unknown'} ({format_event(wife.get_event('BIRT')) if wife else 'Unknown'} - {format_event(wife.get_event('DEAT')) if wife else 'Unknown'})",
+            f"Marriage: {format_event(family.get_event('MARR'))}",
+            f"Children: {', '.join(children) if children else 'None recorded'}",
+        ]
+    )
 
-    batch_size = 5
-    for i in range(0, len(family_blocks), batch_size):
-        batch = family_blocks[i:i + batch_size]
-        batch_text = "\n".join(batch)
-        
-        print(f"[*] Processing batch {i // batch_size + 1} of {(len(family_blocks) + batch_size - 1) // batch_size}...")
-        
-        response = chain.invoke({"data": batch_text})
-        
-        # Save to hard drive progressively
-        with open(report_file, 'a', encoding='utf-8') as f:
-            f.write(response + "\n\n")
 
-    print(f"\n[+] OPERATION COMPLETE. Full narrative securely written to {report_file}")
+def generate_lineage_narrative(tree: TreeData, family_ids: list[str], scope_name: str) -> str:
+    selected_families = [tree.families[family_id] for family_id in family_ids[:12]]
+    if not selected_families:
+        return "No family scope was available for narrative generation."
 
-except Exception as e:
-    print(f"[-] CRITICAL ERROR: {e}")
+    prompt_input = "\n\n".join(family_summary_for_prompt(tree, family) for family in selected_families)
+    prompt = ChatPromptTemplate.from_template(
+        """
+You are an expert genealogist preparing a concise lineage briefing.
+Summarize the relationships, chronology, and notable evidence gaps for the following family summaries.
+Keep the writing factual and hypothesis-aware. Do not invent facts. Make it clear that uncertain points need record review.
+
+Scope: {scope_name}
+
+Family summaries:
+{family_summaries}
+"""
+    )
+
+    try:
+        llm = ChatOllama(model="dolphin-mixtral", temperature=0.1)
+        chain = prompt | llm | StrOutputParser()
+        return chain.invoke({"scope_name": scope_name, "family_summaries": prompt_input}).strip()
+    except Exception as exc:
+        return f"AI lineage narrative unavailable: {exc}"
+
+
+def run_tree_analysis(gedcom_path: str, target_scope: str | None = None) -> str:
+    tree = parse_gedcom(gedcom_path)
+    person_ids, family_ids, scope_name = resolve_scope(tree, target_scope)
+
+    people_text = "\n\n".join(person_block(tree.persons[person_id]) for person_id in person_ids)
+    families_text = "\n\n".join(family_block(tree, tree.families[family_id]) for family_id in family_ids)
+    narrative = generate_lineage_narrative(tree, family_ids, scope_name)
+    source_ids = sorted(
+        {
+            ref.id
+            for person_id in person_ids
+            for ref in tree.persons[person_id].source_refs
+            if ref.id
+        }
+        | {
+            ref.id
+            for family_id in family_ids
+            for ref in tree.families[family_id].source_refs
+            if ref.id
+        }
+    )
+
+    sections = [
+        (
+            "Tree Overview",
+            "\n".join(
+                [
+                    f"Total people in file: {len(tree.persons)}",
+                    f"Total families in file: {len(tree.families)}",
+                    f"People in scope: {len(person_ids)}",
+                    f"Families in scope: {len(family_ids)}",
+                    f"Cataloged sources: {len(tree.sources)}",
+                ]
+            ),
+        ),
+        ("Structured People", people_text),
+        ("Structured Families", families_text),
+        ("AI Lineage Narrative", narrative),
+    ]
+
+    write_report(
+        REPORT_FILE,
+        "Tree Structure Report",
+        gedcom_path,
+        scope_name,
+        sections,
+        source_list=source_ids,
+        confidence_notes=[
+            "Structured People and Structured Families are deterministic GEDCOM extractions.",
+            "The AI narrative is a researcher aid and should be treated as a summary, not authority.",
+        ],
+        next_steps=[
+            "Run the consistency checker to surface chronology and relationship anomalies.",
+            "Run the research hint engine to identify missing records and archive targets.",
+        ],
+    )
+    return REPORT_FILE
+
+
+def main() -> None:
+    gedcom_path = input("GEDCOM file path [bissell.ged]: ").strip() or "bissell.ged"
+    target_scope = input("Target person or family (optional): ").strip() or None
+    output = run_tree_analysis(gedcom_path, target_scope)
+    print(f"\n[+] Tree analysis complete. Report written to {output}")
+
+
+if __name__ == "__main__":
+    main()

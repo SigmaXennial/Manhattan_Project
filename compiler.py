@@ -1,50 +1,100 @@
-import os
-from langchain_ollama import ChatOllama
-from langchain_core.prompts import ChatPromptTemplate
+from __future__ import annotations
+
+from pathlib import Path
+
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama import ChatOllama
 
-# 1. Initialize the Brain
-llm = ChatOllama(model="dolphin-mixtral", temperature=0.3)
+from report_utils import write_report
 
-print("\n[+] Initiating Mayflower Compiler...")
+PROOF_REPORT = "Proof_Summary_Draft.txt"
+REPORT_INPUTS = [
+    "Tree_Structure_Report.txt",
+    "Consistency_Report.txt",
+    "Research_Hints_Report.txt",
+    "External_Recon_Report.txt",
+    "Broad_Web_Recon_Report.txt",
+    "Transcription_Report.txt",
+    "Evidence_Index.txt",
+]
 
-# 2. Gather Intelligence from existing reports
-intelligence = ""
-files_to_read = ["Bissell_Lineage_Report.txt", "Transcription_Report.txt"]
 
-for filename in files_to_read:
-    if os.path.exists(filename):
-        with open(filename, 'r') as f:
-            intelligence += f"\n--- DATA FROM {filename} ---\n"
-            intelligence += f.read()
-    else:
-        print(f"[-] Warning: {filename} not found. Ensure you have run Analysis and Vision first.")
+def collect_research_packets() -> tuple[str, list[str]]:
+    packet_parts = []
+    found_files = []
+    for file_name in REPORT_INPUTS:
+        path = Path(file_name)
+        if path.exists():
+            found_files.append(file_name)
+            packet_parts.append(f"\n--- {file_name} ---\n{path.read_text(encoding='utf-8', errors='replace')}")
+    return "\n".join(packet_parts), found_files
 
-if not intelligence:
-    print("[-] ERROR: No intelligence reports found to compile.")
-else:
-    # 3. Command the Synthesis
-    prompt = ChatPromptTemplate.from_template("""
-    You are a Senior Genealogist preparing a formal application for a lineage society.
-    Synthesize the following research into a professional Genealogical Proof Summary.
-    
-    Focus on:
-    - Establishing the direct line of descent.
-    - Citing the primary evidence (like the 1673 Will and Codicil).
-    - Resolving any discrepancies in birth or death dates.
-    
-    Format this as a formal draft. Do not use conversational filler or conclusions.
 
-    RAW RESEARCH DATA:
-    {data}
-    """)
+def compile_proof_summary() -> str | None:
+    research_packet, found_files = collect_research_packets()
+    if not research_packet:
+        print("[-] No structured reports were found. Run tree analysis or related workflows first.")
+        return None
 
-    chain = prompt | llm | StrOutputParser()
-    
-    print("[+] Synthesizing master draft...")
-    response = chain.invoke({"data": intelligence})
-    
-    with open("MAYFLOWER_SUBMISSION_DRAFT.txt", "w") as f:
-        f.write(response)
-        
-    print("\n[+] SUCCESS: Master draft written to MAYFLOWER_SUBMISSION_DRAFT.txt")
+    prompt = ChatPromptTemplate.from_template(
+        """
+You are a senior genealogist preparing a proof-style summary draft.
+Use only the supplied reports.
+
+Draft a structured summary with these sections:
+1. Research Scope
+2. Evidence Reviewed
+3. Tentative Lineage / Identity Findings
+4. Conflicts or Chronology Issues
+5. Research Hints Worth Pursuing Next
+6. Citation and Evidence Gaps
+
+Do not present uncertain claims as proven facts.
+Keep the tone formal and evidence-aware.
+
+REPORTS:
+{reports}
+"""
+    )
+
+    confidence_notes = [
+        "This draft is a synthesis layer over the available reports and does not replace source-by-source review.",
+        "Conflicting evidence should be resolved against original records before formal submission or publication.",
+    ]
+
+    try:
+        llm = ChatOllama(model="dolphin-mixtral", temperature=0.1)
+        chain = prompt | llm | StrOutputParser()
+        draft = chain.invoke({"reports": research_packet}).strip()
+    except Exception as exc:
+        draft = (
+            f"AI synthesis unavailable: {exc}\n\n"
+            f"Reports collected: {', '.join(found_files)}\n"
+            "Use the underlying reports to assemble a manual proof summary."
+        )
+        confidence_notes.append("The AI synthesis step was unavailable, so this file currently contains a manual assembly note.")
+
+    write_report(
+        PROOF_REPORT,
+        "Proof Summary Draft",
+        ", ".join(found_files),
+        "Compiled case summary",
+        [("Draft Narrative", draft)],
+        source_list=found_files,
+        confidence_notes=confidence_notes,
+        next_steps=[
+            "Review each claim against the cited reports and underlying records.",
+            "Promote unresolved conflicts back into the consistency and hint workflows for follow-up research.",
+        ],
+    )
+    print(f"\n[+] Proof summary draft written to {PROOF_REPORT}")
+    return PROOF_REPORT
+
+
+def main() -> None:
+    compile_proof_summary()
+
+
+if __name__ == "__main__":
+    main()

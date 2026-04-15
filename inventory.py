@@ -1,44 +1,71 @@
-import os
+from __future__ import annotations
 
-# --- TARGET ASSETS ---
+from pathlib import Path
+
 SCRIPTS = [
-    "bot.py", "master_investigator.py", "analyze_tree.py", 
-    "transcribe_doc.py", "compiler.py", "evidence_locker.py",
-    "search_agent.py", "external_recon.py", "test_brain.py"
+    "bot.py",
+    "analyze_tree.py",
+    "gedcom_parser.py",
+    "genealogy_models.py",
+    "consistency_checker.py",
+    "hint_engine.py",
+    "external_recon.py",
+    "master_investigator.py",
+    "transcribe_doc.py",
+    "compiler.py",
+    "evidence_locker.py",
+    "report_utils.py",
 ]
 
-DATA_FILES = ["bissell.ged", "document.jpg"]
+DATA_FILES = [
+    "bissell.ged",
+]
 
-def check_system():
-    print("\n--- MANHATTAN PROJECT: SYSTEM INVENTORY ---")
-    print("Scanning local environment for core assets...\n")
-    
+OPTIONAL_IMAGE_TARGETS = [
+    "document.jpg",
+    "document_Page_1.jpg",
+    "document_Page_4.jpg",
+    "document_Page_5.jpg",
+    "document_Page_6.jpg",
+    "document_Page_7.jpg",
+]
+
+
+def check_system() -> None:
+    print("\n--- Genealogy Intelligence Platform: System Health Check ---")
+    print("Scanning local environment for core workflows and source files...\n")
+
     missing = []
 
-    print("[*] Checking Intelligence Modules:")
+    print("[*] Checking workflow scripts:")
     for script in SCRIPTS:
-        if os.path.exists(script):
+        if Path(script).exists():
             print(f"  [OK]  {script}")
         else:
             print(f"  [!!]  MISSING: {script}")
             missing.append(script)
 
-    print("\n[*] Checking Primary Source Data:")
-    for data in DATA_FILES:
-        # Check root folder
-        if os.path.exists(data):
-            print(f"  [OK]  {data}")
-        # Check Evidence Locker subfolders
-        elif any(os.path.exists(os.path.join("Evidence_Locker", sub, data)) for sub in ["Probate_Records", "Vital_Records"]):
-            print(f"  [OK]  {data} (Located in Evidence Locker)")
+    print("\n[*] Checking GEDCOM / primary data files:")
+    for data_file in DATA_FILES:
+        if Path(data_file).exists():
+            print(f"  [OK]  {data_file}")
         else:
-            print(f"  [!!]  MISSING: {data}")
-            missing.append(data)
+            print(f"  [!!]  MISSING: {data_file}")
+            missing.append(data_file)
+
+    print("\n[*] Checking document intelligence inputs:")
+    available_images = [path for path in OPTIONAL_IMAGE_TARGETS if Path(path).exists()]
+    if available_images:
+        for image_path in available_images:
+            print(f"  [OK]  {image_path}")
+    else:
+        print("  [!!]  No transcription-ready document images were found.")
 
     if not missing:
-        print("\n[+] SYSTEM READY: All protocols and data files accounted for.")
+        print("\n[+] SYSTEM READY: Core genealogy workflows are present.")
     else:
-        print(f"\n[-] SYSTEM INCOMPLETE: {len(missing)} assets are missing or displaced.")
+        print(f"\n[-] SYSTEM INCOMPLETE: {len(missing)} required assets are missing.")
+
 
 if __name__ == "__main__":
     check_system()
