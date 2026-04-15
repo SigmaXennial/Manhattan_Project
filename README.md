@@ -1,6 +1,6 @@
 # Genealogy Intelligence Platform
 
-A local-first genealogy research workstation built as a set of focused Python CLI workflows.
+A local-first genealogy research workstation built as focused Python workflows with both a CLI console and a Gemini-style local workspace app.
 
 ## Current Direction
 
@@ -18,7 +18,7 @@ This repository now implements **Phase 1** of a broader genealogy intelligence p
 - a combined case bundle JSON for downstream local tooling
 - artifact and evidence metadata inside the case bundle
 
-The project remains intentionally **local-only and CLI-first**. It does not yet implement collaboration, hosted accounts, subscriptions, or DNA workflows.
+The project remains intentionally **local-only**. It now includes both a CLI console and a desktop-style local workspace app, but it still does not implement collaboration, hosted accounts, subscriptions, or DNA workflows.
 
 ## Core Workflows
 
