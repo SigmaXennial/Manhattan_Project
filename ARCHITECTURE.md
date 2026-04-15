@@ -12,6 +12,7 @@ The long-term vision remains a broader genealogy platform with family tree manag
 - public archive and web research connectors
 - plain-text report outputs
 - lightweight JSON exports for future local reuse
+- a combined case bundle artifact for downstream local tooling
 
 ## Phased Roadmap
 
@@ -30,6 +31,7 @@ Current repository scope:
 - evidence indexing
 - proof-summary drafting
 - structured JSON exports for tree, consistency, and hint data
+- combined `Case_Bundle.json` assembly for the active research scope
 
 Phase 1 outputs are intentionally plain-text and researcher review is required before any tree change is accepted.
 
@@ -42,7 +44,7 @@ Reserved next-step direction:
 - stronger evidence linking and source tracking
 - better workflow chaining and operator shortcuts
 
-The current JSON exports are meant to reduce migration friction into this phase.
+The current JSON exports are meant to reduce migration friction into this phase, and `Case_Bundle.json` is the first combined package meant for future UI or local knowledge-layer consumption.
 
 ### Phase 3 — Local UI / desktop-style experience
 
@@ -86,6 +88,7 @@ This layer standardizes:
 - `Hint`
 - `ConsistencyIssue`
 - JSON payloads for local caches and later UI consumption
+- a combined case bundle that keeps the active scope’s tree, issues, and hints together
 
 ### 3. Analysis Layer
 
@@ -113,6 +116,9 @@ Structured local cache outputs:
 - `Tree_Data.json`
 - `Consistency_Data.json`
 - `Research_Hints_Data.json`
+- `Case_Bundle.json`
+
+`Case_Bundle.json` is the preferred Phase 2-ready handoff artifact because it centralizes the active scope’s structured tree data, deterministic issues, and generated hints into one file.
 
 ## Domain Boundaries for the End State
 
@@ -190,3 +196,4 @@ That means the Phase 1 workflows are designed to produce:
 - hints framed as suggestions, not facts
 - reviewable plain-text outputs suitable for archival workflows
 - structured JSON exports that mirror the reviewed local data without claiming additional certainty
+- a combined case bundle that aggregates outputs but does not convert hypotheses into facts

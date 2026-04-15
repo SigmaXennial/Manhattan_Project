@@ -15,6 +15,7 @@ This repository now implements **Phase 1** of a broader genealogy intelligence p
 - document transcription with local Ollama vision models
 - evidence indexing and proof-summary draft assembly
 - Phase 2-ready local JSON exports for structured reuse
+- a combined case bundle JSON for downstream local tooling
 
 The project remains intentionally **local-only and CLI-first**. It does not yet implement collaboration, hosted accounts, subscriptions, or DNA workflows.
 
@@ -43,6 +44,7 @@ The operations console includes grouped workflows for:
 - **Case Assembly**
   - generate `Proof_Summary_Draft.txt`
   - build `Evidence_Index.txt`
+  - maintain `Case_Bundle.json`
 
 ## New Phase 1 Modules
 
@@ -50,7 +52,7 @@ The operations console includes grouped workflows for:
 - `gedcom_parser.py` — reusable GEDCOM parsing and scope resolution
 - `consistency_checker.py` — deterministic chronology and relationship validation
 - `hint_engine.py` — research hint generation from missing facts and family structure
-- `json_export.py` — lightweight structured JSON export helpers for local reuse
+- `json_export.py` — lightweight structured JSON export helpers for local reuse and bundle assembly
 - `report_utils.py` — shared plain-text report formatting helpers
 - `ARCHITECTURE.md` — phased roadmap and future-ready boundaries
 
@@ -72,6 +74,9 @@ Structured JSON outputs:
 - `Tree_Data.json`
 - `Consistency_Data.json`
 - `Research_Hints_Data.json`
+- `Case_Bundle.json`
+
+`Case_Bundle.json` is the combined local package that merges the active scope’s tree, consistency, and hint sections into one reusable artifact.
 
 ## Technology Stack
 
@@ -89,6 +94,7 @@ Implemented now:
 - local GEDCOM workflows
 - local report generation
 - local JSON export for structured reuse
+- combined case bundle JSON for downstream local tooling
 - AI-assisted but evidence-aware research support
 - CLI-first orchestration through `bot.py`
 

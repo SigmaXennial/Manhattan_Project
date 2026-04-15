@@ -35,6 +35,7 @@ OPTIONAL_JSON_EXPORTS = [
     "Tree_Data.json",
     "Consistency_Data.json",
     "Research_Hints_Data.json",
+    "Case_Bundle.json",
 ]
 
 

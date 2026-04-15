@@ -11,11 +11,52 @@ from report_utils import timestamp_label
 TREE_EXPORT_FILE = "Tree_Data.json"
 CONSISTENCY_EXPORT_FILE = "Consistency_Data.json"
 HINTS_EXPORT_FILE = "Research_Hints_Data.json"
+CASE_BUNDLE_FILE = "Case_Bundle.json"
 
 
 def write_json(output_path: str, payload: dict[str, Any]) -> str:
     Path(output_path).write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return output_path
+
+
+def read_json(output_path: str) -> dict[str, Any] | None:
+    path = Path(output_path)
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def base_bundle(input_file: str, scope_name: str) -> dict[str, Any]:
+    return {
+        "generated_at": timestamp_label(),
+        "input_file": input_file,
+        "scope": scope_name,
+        "sections": {
+            "tree": None,
+            "consistency": None,
+            "hints": None,
+        },
+        "available_sections": [],
+    }
+
+
+def update_case_bundle(section_name: str, section_payload: dict[str, Any], output_path: str = CASE_BUNDLE_FILE) -> str:
+    input_file = section_payload.get("input_file", "")
+    scope_name = section_payload.get("scope", "")
+    bundle = read_json(output_path)
+
+    if not bundle or bundle.get("input_file") != input_file or bundle.get("scope") != scope_name:
+        bundle = base_bundle(input_file, scope_name)
+
+    bundle["generated_at"] = timestamp_label()
+    bundle["sections"][section_name] = section_payload
+    bundle["available_sections"] = [
+        name for name, value in bundle["sections"].items() if value is not None
+    ]
+    return write_json(output_path, bundle)
 
 
 def tree_payload(
@@ -63,19 +104,22 @@ def export_tree_json(
     scope_name: str,
     lineage_narrative: str,
     output_path: str = TREE_EXPORT_FILE,
+    bundle_path: str = CASE_BUNDLE_FILE,
 ) -> str:
-    return write_json(output_path, tree_payload(tree, person_ids, family_ids, scope_name, lineage_narrative))
+    payload = tree_payload(tree, person_ids, family_ids, scope_name, lineage_narrative)
+    write_json(output_path, payload)
+    update_case_bundle("tree", payload, bundle_path)
+    return output_path
 
 
-def export_consistency_json(
+def consistency_payload(
     gedcom_path: str,
     scope_name: str,
     person_ids: list[str],
     family_ids: list[str],
     issues: list[ConsistencyIssue],
-    output_path: str = CONSISTENCY_EXPORT_FILE,
-) -> str:
-    payload = {
+) -> dict[str, Any]:
+    return {
         "generated_at": timestamp_label(),
         "input_file": gedcom_path,
         "scope": scope_name,
@@ -86,18 +130,31 @@ def export_consistency_json(
         },
         "issues": [asdict(issue) for issue in issues],
     }
-    return write_json(output_path, payload)
 
 
-def export_hints_json(
+def export_consistency_json(
+    gedcom_path: str,
+    scope_name: str,
+    person_ids: list[str],
+    family_ids: list[str],
+    issues: list[ConsistencyIssue],
+    output_path: str = CONSISTENCY_EXPORT_FILE,
+    bundle_path: str = CASE_BUNDLE_FILE,
+) -> str:
+    payload = consistency_payload(gedcom_path, scope_name, person_ids, family_ids, issues)
+    write_json(output_path, payload)
+    update_case_bundle("consistency", payload, bundle_path)
+    return output_path
+
+
+def hints_payload(
     gedcom_path: str,
     scope_name: str,
     person_ids: list[str],
     family_ids: list[str],
     hints: list[Hint],
-    output_path: str = HINTS_EXPORT_FILE,
-) -> str:
-    payload = {
+) -> dict[str, Any]:
+    return {
         "generated_at": timestamp_label(),
         "input_file": gedcom_path,
         "scope": scope_name,
@@ -108,4 +165,18 @@ def export_hints_json(
         },
         "hints": [asdict(hint) for hint in hints],
     }
-    return write_json(output_path, payload)
+
+
+def export_hints_json(
+    gedcom_path: str,
+    scope_name: str,
+    person_ids: list[str],
+    family_ids: list[str],
+    hints: list[Hint],
+    output_path: str = HINTS_EXPORT_FILE,
+    bundle_path: str = CASE_BUNDLE_FILE,
+) -> str:
+    payload = hints_payload(gedcom_path, scope_name, person_ids, family_ids, hints)
+    write_json(output_path, payload)
+    update_case_bundle("hints", payload, bundle_path)
+    return output_path

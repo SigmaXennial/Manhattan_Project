@@ -13,7 +13,7 @@ from evidence_locker import organize_evidence
 from external_recon import run_external_recon
 from hint_engine import run_hint_generation
 from inventory import check_system
-from json_export import CONSISTENCY_EXPORT_FILE, HINTS_EXPORT_FILE
+from json_export import CASE_BUNDLE_FILE, CONSISTENCY_EXPORT_FILE, HINTS_EXPORT_FILE
 from master_investigator import get_research_parameters, run_broad_recon
 from transcribe_doc import transcribe_document
 
@@ -59,7 +59,7 @@ def view_log() -> None:
 
 def show_json_exports() -> None:
     print("\n--- Structured JSON Exports ---")
-    for path in [TREE_JSON_FILE, CONSISTENCY_EXPORT_FILE, HINTS_EXPORT_FILE]:
+    for path in [TREE_JSON_FILE, CONSISTENCY_EXPORT_FILE, HINTS_EXPORT_FILE, CASE_BUNDLE_FILE]:
         status = "[OK]" if Path(path).exists() else "[--]"
         print(f"{status} {path}")
 
@@ -85,6 +85,7 @@ def run_guided_workflow(current_gedcom: str, current_target: str) -> tuple[str, 
         print("[4/4] Compiling proof summary draft...")
         compile_proof_summary()
 
+    print(f"[+] Combined case bundle available at {CASE_BUNDLE_FILE}")
     return gedcom_path, target_scope
 
 
