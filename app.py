@@ -40,6 +40,7 @@ DEFAULT_OUTPUTS = [
     PROOF_REPORT,
     CASE_BUNDLE_FILE,
 ]
+BROWSABLE_PATTERNS = ["*.txt", "*.json", "*.ged", "*.jpg", "*.jpeg", "*.png", "*.pdf"]
 
 
 def init_state() -> None:
@@ -53,81 +54,99 @@ def init_state() -> None:
         "record_focus": "",
         "broad_locations": "",
         "records_of_interest": "",
-        "research_goal": "",
+        "research_goal": "operational osint",
         "image_path": "document_Page_1.jpg",
         "case_name": "",
         "activity": [],
+        "selected_browser_file": CASE_BUNDLE_FILE,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
 
 
-st.set_page_config(page_title="Genealogy Workspace", page_icon="🧬", layout="wide")
+st.set_page_config(page_title="Genealogy Intelligence App", page_icon="📜", layout="wide")
 init_state()
 
 st.markdown(
-
     """
     <style>
     .stApp {
-        background: #131314;
-        color: #e3e3e3;
+        background: linear-gradient(180deg, #efe2c8 0%, #eadbc2 42%, #e4d3b7 100%);
+        color: #33261a;
     }
     [data-testid="stSidebar"] {
-        background: #1d1e20;
-        border-right: 1px solid #2a2b2e;
+        background: #d8c2a1;
+        border-right: 1px solid rgba(71, 46, 24, 0.18);
     }
     .block-container {
-        max-width: 1440px;
-        padding-top: 1.75rem;
-        padding-bottom: 2.5rem;
+        max-width: 1480px;
+        padding-top: 1.2rem;
+        padding-bottom: 2.4rem;
     }
-    .gem-hero {
-        background: linear-gradient(135deg, rgba(138,180,248,0.16), rgba(129,201,149,0.08));
-        border: 1px solid rgba(138,180,248,0.2);
-        border-radius: 24px;
-        padding: 1.4rem 1.6rem;
+    .archive-hero {
+        background: linear-gradient(135deg, rgba(110, 66, 25, 0.96), rgba(75, 46, 22, 0.94));
+        color: #f7ecd9;
+        border: 1px solid rgba(255, 242, 220, 0.16);
+        border-radius: 26px;
+        padding: 1.45rem 1.6rem;
+        box-shadow: 0 16px 34px rgba(69, 43, 20, 0.18);
         margin-bottom: 1rem;
     }
-    .gem-card {
-        background: #1e1f20;
-        border: 1px solid #2b2d31;
-        border-radius: 20px;
-        padding: 1rem 1.1rem;
+    .archive-card {
+        background: rgba(255, 248, 236, 0.82);
+        border: 1px solid rgba(108, 74, 38, 0.18);
+        border-radius: 22px;
+        padding: 1rem 1.05rem;
+        box-shadow: 0 10px 24px rgba(85, 58, 29, 0.08);
         margin-bottom: 1rem;
+    }
+    .archive-note {
+        background: rgba(124, 78, 31, 0.08);
+        border-left: 4px solid #8a5a2b;
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.9rem;
     }
     .file-pill {
         display: inline-block;
-        padding: 0.35rem 0.7rem;
+        padding: 0.35rem 0.72rem;
         border-radius: 999px;
-        margin: 0.2rem 0.35rem 0.2rem 0;
-        font-size: 0.9rem;
-        background: #24262a;
-        border: 1px solid #31343a;
+        margin: 0.18rem 0.35rem 0.18rem 0;
+        font-size: 0.88rem;
+        background: #f6ecdb;
+        border: 1px solid rgba(108, 74, 38, 0.18);
+        color: #5d4025;
     }
-    .ok-pill {
-        color: #9fe6b0;
-        border-color: rgba(129, 201, 149, 0.3);
+    .file-pill-ready {
+        background: #efe5d0;
+        color: #4f6e38;
+        border-color: rgba(79, 110, 56, 0.28);
     }
-    .muted-pill {
-        color: #b8bcc5;
+    .file-pill-missing {
+        color: #8a7358;
+        border-color: rgba(108, 74, 38, 0.12);
     }
     .stButton > button,
     .stDownloadButton > button {
         border-radius: 999px;
-        border: 1px solid #3a5fd7;
-        background: #2d63ff;
-        color: white;
-        font-weight: 600;
+        border: 1px solid #7a4b24;
+        background: #8a5a2b;
+        color: #fff8ef;
+        font-weight: 700;
     }
     .stTextInput input, .stTextArea textarea {
         border-radius: 16px;
+        background: rgba(255, 251, 244, 0.95);
     }
     div[data-testid="stMetric"] {
-        background: #1e1f20;
-        border: 1px solid #2b2d31;
-        padding: 0.8rem;
+        background: rgba(255, 248, 236, 0.82);
+        border: 1px solid rgba(108, 74, 38, 0.18);
+        padding: 0.85rem;
         border-radius: 18px;
+        box-shadow: 0 8px 18px rgba(85, 58, 29, 0.06);
+    }
+    h1, h2, h3, h4 {
+        color: #4c321c;
     }
     </style>
     """,
@@ -142,6 +161,7 @@ def read_text_file(path: str) -> str:
     return file_path.read_text(encoding="utf-8", errors="replace")
 
 
+
 def read_json_file(path: str) -> dict[str, Any] | None:
     file_path = Path(path)
     if not file_path.exists():
@@ -152,8 +172,10 @@ def read_json_file(path: str) -> dict[str, Any] | None:
         return None
 
 
+
 def file_exists(path: str) -> bool:
     return Path(path).exists()
+
 
 
 def add_activity(prompt: str, response: str, files: list[str] | None = None, logs: str = "") -> None:
@@ -167,6 +189,7 @@ def add_activity(prompt: str, response: str, files: list[str] | None = None, log
     )
 
 
+
 def run_with_capture(action_name: str, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> tuple[Any, str, str | None]:
     buffer = io.StringIO()
     try:
@@ -177,44 +200,41 @@ def run_with_capture(action_name: str, fn: Callable[..., Any], *args: Any, **kwa
         return None, buffer.getvalue(), f"{action_name} failed: {exc}"
 
 
+
 def format_scope(scope: str) -> str:
     return scope.strip() or "Entire tree"
 
 
-def render_activity_feed() -> None:
-    st.subheader("Workspace feed")
-    if not st.session_state.activity:
-        with st.chat_message("assistant"):
-            st.markdown(
-                "Start with **Guided workflow** to build a case bundle, then use the explorer to review people, issues, hints, and artifacts."
-            )
-        return
 
-    for item in reversed(st.session_state.activity):
-        with st.chat_message("user"):
-            st.markdown(item["prompt"])
-        with st.chat_message("assistant"):
-            st.markdown(item["response"])
-            if item["files"]:
-                st.caption("Artifacts")
-                st.markdown(
-                    " ".join(
-                        f"<span class='file-pill ok-pill'>{path}</span>" if file_exists(path) else f"<span class='file-pill muted-pill'>{path}</span>"
-                        for path in item["files"]
-                    ),
-                    unsafe_allow_html=True,
-                )
-            if item["logs"]:
-                with st.expander("Console output"):
-                    st.code(item["logs"])
+def list_workspace_files() -> list[str]:
+    discovered: dict[str, Path] = {}
+    for path in [Path(file_name) for file_name in DEFAULT_OUTPUTS]:
+        if path.exists() and path.is_file():
+            discovered[str(path)] = path
+    for pattern in BROWSABLE_PATTERNS:
+        for path in Path(".").glob(pattern):
+            if path.is_file() and path.parent == Path("."):
+                discovered[str(path)] = path
+    return sorted(discovered.keys())
+
+
+
+def browser_default_file() -> str:
+    selected = st.session_state.selected_browser_file
+    if selected and file_exists(selected):
+        return selected
+    files = list_workspace_files()
+    return files[0] if files else ""
+
 
 
 def render_file_status(paths: list[str]) -> None:
     pills = []
     for path in paths:
-        css_class = "ok-pill" if file_exists(path) else "muted-pill"
+        css_class = "file-pill-ready" if file_exists(path) else "file-pill-missing"
         pills.append(f"<span class='file-pill {css_class}'>{path}</span>")
     st.markdown("".join(pills), unsafe_allow_html=True)
+
 
 
 def render_text_preview(title: str, path: str, height: int = 320) -> None:
@@ -226,6 +246,7 @@ def render_text_preview(title: str, path: str, height: int = 320) -> None:
             st.caption("File not available yet.")
 
 
+
 def render_json_preview(title: str, path: str) -> None:
     payload = read_json_file(path)
     with st.expander(title, expanded=False):
@@ -233,6 +254,131 @@ def render_json_preview(title: str, path: str) -> None:
             st.caption("File not available yet.")
         else:
             st.json(payload)
+
+
+
+def render_activity_feed() -> None:
+    st.subheader("Operations feed")
+    if not st.session_state.activity:
+        st.markdown(
+            "<div class='archive-note'><strong>No operations logged yet.</strong><br/>Start with the guided workflow, then move into archival or web OSINT runs.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    for item in reversed(st.session_state.activity):
+        with st.chat_message("user"):
+            st.markdown(item["prompt"])
+        with st.chat_message("assistant"):
+            st.markdown(item["response"])
+            if item["files"]:
+                st.caption("Updated files")
+                render_file_status(item["files"])
+            if item["logs"]:
+                with st.expander("Console output"):
+                    st.code(item["logs"])
+
+
+
+def recommended_next_step() -> str:
+    if not file_exists(TREE_JSON_FILE):
+        return "Run tree analysis to establish the active case structure."
+    if not file_exists(CONSISTENCY_EXPORT_FILE):
+        return "Run the consistency review to surface chronology and relationship conflicts."
+    if not file_exists(HINTS_EXPORT_FILE):
+        return "Generate research hints to create the next research queue."
+    if not file_exists(EXTERNAL_RECON_REPORT_FILE):
+        return "Run external archival recon for targeted record discovery."
+    if not file_exists(BROAD_RECON_REPORT_FILE):
+        return "Run broad web recon to widen OSINT lead generation."
+    if not file_exists(PROOF_REPORT):
+        return "Compile the proof summary to consolidate findings."
+    return "Review the case bundle and evidence index, then continue person-level follow-up."
+
+
+
+def render_sidebar() -> None:
+    st.sidebar.markdown("## Case control")
+    st.sidebar.text_input("GEDCOM file", key="gedcom_path")
+    st.sidebar.text_input("Scope / target", key="scope", placeholder="Entire tree or person name")
+    st.sidebar.text_input("Operational target", key="target_name", placeholder="Used for recon workflows")
+    st.sidebar.text_input("Document image", key="image_path")
+    st.sidebar.text_input("Case name", key="case_name")
+
+    st.sidebar.markdown("### Research defaults")
+    st.sidebar.text_input("Birth year", key="birth_year")
+    st.sidebar.text_input("Death year", key="death_year")
+    st.sidebar.text_input("Place", key="place")
+    st.sidebar.text_input("Record focus", key="record_focus")
+    st.sidebar.text_input("OSINT locations", key="broad_locations")
+    st.sidebar.text_input("Records of interest", key="records_of_interest")
+    st.sidebar.text_input("Research goal", key="research_goal")
+
+    st.sidebar.markdown("### Output status")
+    for path in DEFAULT_OUTPUTS:
+        marker = "●" if file_exists(path) else "○"
+        st.sidebar.caption(f"{marker} {path}")
+
+    st.sidebar.markdown("### Recommended next step")
+    st.sidebar.caption(recommended_next_step())
+
+
+
+def render_workspace_summary() -> None:
+    bundle = read_json_file(CASE_BUNDLE_FILE) or {}
+    person_counts = bundle.get("person_artifact_counts") or {}
+    artifacts = bundle.get("artifacts") or []
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Ready outputs", sum(1 for path in DEFAULT_OUTPUTS if file_exists(path)))
+    c2.metric("Bundle artifacts", len(artifacts))
+    c3.metric("Mapped people", person_counts.get("people_mapped", 0))
+    c4.metric("Direct person artifact links", person_counts.get("people_with_direct_artifacts", 0))
+
+
+
+def render_dashboard() -> None:
+    st.markdown("### Case dashboard")
+    render_workspace_summary()
+
+    left, right = st.columns([1.05, 0.95])
+    with left:
+        st.markdown("<div class='archive-card'>", unsafe_allow_html=True)
+        st.markdown("#### Active case profile")
+        st.write(
+            {
+                "gedcom": st.session_state.gedcom_path,
+                "scope": format_scope(st.session_state.scope),
+                "operational_target": st.session_state.target_name or format_scope(st.session_state.scope),
+                "document_image": st.session_state.image_path,
+                "research_goal": st.session_state.research_goal or "Not set",
+            }
+        )
+        st.markdown("#### Known outputs")
+        render_file_status(DEFAULT_OUTPUTS)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("<div class='archive-card'>", unsafe_allow_html=True)
+        st.markdown("#### Operational OSINT board")
+        st.markdown(
+            "- **Archival recon** for record repositories, catalog hits, and newspapers\n"
+            "- **Broad web recon** for public lead expansion and derivative tree discovery\n"
+            "- **Evidence locker** for case packaging and reviewable artifacts\n"
+            "- **Case bundle** for person-linked issues, hints, and files"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with right:
+        st.markdown("<div class='archive-card'>", unsafe_allow_html=True)
+        st.markdown("#### Next recommended action")
+        st.markdown(f"<div class='archive-note'>{recommended_next_step()}</div>", unsafe_allow_html=True)
+        st.markdown("#### Fast previews")
+        render_text_preview("External recon snapshot", EXTERNAL_RECON_REPORT_FILE, height=220)
+        render_text_preview("Broad web recon snapshot", BROAD_RECON_REPORT_FILE, height=220)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    render_activity_feed()
+
 
 
 def run_guided_workflow_ui(gedcom_path: str, scope: str, compile_summary: bool, refresh_evidence: bool) -> None:
@@ -279,164 +425,90 @@ def run_guided_workflow_ui(gedcom_path: str, scope: str, compile_summary: bool, 
         )
 
 
-def render_sidebar() -> None:
-    st.sidebar.markdown("## Genealogy Workspace")
-    st.sidebar.caption("Gemini-style local research cockpit")
-    st.sidebar.text_input("GEDCOM file", key="gedcom_path")
-    st.sidebar.text_input("Scope / target", key="scope", placeholder="Entire tree or person name")
-    st.sidebar.text_input("Default target name", key="target_name")
-    st.sidebar.text_input("Document image", key="image_path")
-    st.sidebar.text_input("Case name", key="case_name")
 
-    st.sidebar.markdown("### Output status")
-    for path in DEFAULT_OUTPUTS:
-        marker = "●" if file_exists(path) else "○"
-        st.sidebar.caption(f"{marker} {path}")
+def render_operations_tab() -> None:
+    st.markdown("### Operations")
+    st.caption("Run the core genealogy workflows and the two OSINT modes from one place.")
 
-    st.sidebar.markdown("### Workspace tips")
-    st.sidebar.caption("- Use Guided workflow first")
-    st.sidebar.caption("- Review the Case Bundle tab after each run")
-    st.sidebar.caption("- Person mappings appear once tree data exists")
+    top_left, top_right = st.columns(2)
+    with top_left:
+        with st.form("guided-workflow-form"):
+            st.markdown("#### Guided case build")
+            guided_compile = st.checkbox("Compile proof summary after analysis", value=True)
+            guided_evidence = st.checkbox("Refresh evidence locker after analysis", value=False)
+            submitted = st.form_submit_button("Run guided workflow")
+        if submitted:
+            run_guided_workflow_ui(st.session_state.gedcom_path, st.session_state.scope, guided_compile, guided_evidence)
+            st.rerun()
 
-
-def render_bundle_explorer() -> None:
-    bundle = read_json_file(CASE_BUNDLE_FILE)
-    if bundle is None:
-        st.info("Run a workflow that generates `Case_Bundle.json` first.")
-        return
-
-    tree_section = (bundle.get("sections") or {}).get("tree") or {}
-    consistency_section = (bundle.get("sections") or {}).get("consistency") or {}
-    hints_section = (bundle.get("sections") or {}).get("hints") or {}
-    person_artifacts = bundle.get("person_artifacts") or []
-    artifact_counts = bundle.get("artifact_counts") or {}
-    person_counts = bundle.get("person_artifact_counts") or {}
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("People in scope", (tree_section.get("counts") or {}).get("people_in_scope", 0))
-    col2.metric("Issues", (consistency_section.get("counts") or {}).get("issues_found", 0))
-    col3.metric("Hints", (hints_section.get("counts") or {}).get("hints_generated", 0))
-    col4.metric("Artifacts", len(bundle.get("artifacts") or []))
-
-    st.markdown("#### Bundle context")
-    st.write(
-        {
-            "generated_at": bundle.get("generated_at"),
-            "input_file": bundle.get("input_file"),
-            "scope": bundle.get("scope"),
-            "available_sections": bundle.get("available_sections"),
-        }
-    )
-
-    left, right = st.columns([1.2, 1])
-    with left:
-        st.markdown("#### Person explorer")
-        if not person_artifacts:
-            st.caption("No person mappings yet. Run tree analysis to populate them.")
-        else:
-            options = {
-                f"{person['person_name']} ({person['person_id']})": person for person in person_artifacts
-            }
-            selected_label = st.selectbox("Choose a person", list(options.keys()))
-            selected = options[selected_label]
-            st.write(
-                {
-                    "person_id": selected.get("person_id"),
-                    "primary_scope_match": selected.get("is_primary_scope_match"),
-                    "name_variants": selected.get("name_variants"),
-                }
+        with st.form("external-recon-form"):
+            st.markdown("#### Archival OSINT")
+            external_target = st.text_input("Target name", value=st.session_state.target_name or st.session_state.scope)
+            external_birth = st.text_input("Birth year", value=st.session_state.birth_year)
+            external_death = st.text_input("Death year", value=st.session_state.death_year)
+            external_place = st.text_input("Place", value=st.session_state.place)
+            external_focus = st.text_input("Record focus", value=st.session_state.record_focus or "operational osint")
+            external_submit = st.form_submit_button("Run external recon")
+        if external_submit:
+            _, logs, error = run_with_capture(
+                "External recon",
+                run_external_recon,
+                external_target,
+                external_birth,
+                external_death,
+                external_place,
+                external_focus,
+                external_target or None,
             )
-            st.markdown("**Direct artifact refs**")
-            st.json(selected.get("direct_artifact_refs") or [])
-            st.markdown("**Related consistency issues**")
-            st.json(selected.get("related_issue_refs") or [])
-            st.markdown("**Related research hints**")
-            st.json(selected.get("related_hint_refs") or [])
+            if error:
+                add_activity("Run external archival search", error, [EXTERNAL_RECON_REPORT_FILE, CASE_BUNDLE_FILE], logs)
+            else:
+                add_activity("Run external archival search", "External archival recon report updated.", [EXTERNAL_RECON_REPORT_FILE, CASE_BUNDLE_FILE], logs)
+            st.rerun()
 
-    with right:
-        st.markdown("#### Artifact summaries")
-        st.json(artifact_counts)
-        st.markdown("#### Person mapping summaries")
-        st.json(person_counts)
+    with top_right:
+        with st.form("broad-recon-form"):
+            st.markdown("#### Broad web OSINT")
+            broad_name = st.text_input("Person or family target", value=st.session_state.target_name or st.session_state.scope, key="broad_name_input")
+            broad_birth = st.text_input("Birth year/date", value=st.session_state.birth_year, key="broad_birth_input")
+            broad_death = st.text_input("Death year/date", value=st.session_state.death_year, key="broad_death_input")
+            broad_locations = st.text_input("Locations", value=st.session_state.broad_locations)
+            broad_records = st.text_input("Records of interest", value=st.session_state.records_of_interest)
+            broad_goal = st.text_input("Research goal", value=st.session_state.research_goal)
+            broad_submit = st.form_submit_button("Run broad web recon")
+        if broad_submit:
+            params = {
+                "name": broad_name,
+                "birth_date": broad_birth,
+                "death_date": broad_death,
+                "locations": broad_locations,
+                "records_of_interest": broad_records,
+                "research_goal": broad_goal,
+            }
+            _, logs, error = run_with_capture("Broad web recon", run_broad_recon, params)
+            if error:
+                add_activity("Run broad web recon", error, [BROAD_RECON_REPORT_FILE, CASE_BUNDLE_FILE], logs)
+            else:
+                add_activity("Run broad web recon", "Broad web recon report updated.", [BROAD_RECON_REPORT_FILE, CASE_BUNDLE_FILE], logs)
+            st.rerun()
 
-    render_json_preview("Raw case bundle JSON", CASE_BUNDLE_FILE)
-
-
-render_sidebar()
-
-st.markdown(
-    """
-    <div class="gem-hero">
-        <h1 style="margin:0;">Genealogy Intelligence Workspace</h1>
-        <p style="margin:0.45rem 0 0 0; color:#c7cbd3;">
-            A desktop-style local app for running genealogy workflows, reviewing outputs, and exploring the active case bundle.
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-status_col, feed_col = st.columns([0.9, 1.1])
-with status_col:
-    st.markdown("<div class='gem-card'>", unsafe_allow_html=True)
-    st.markdown("### Active workspace")
-    st.write(
-        {
-            "gedcom": st.session_state.gedcom_path,
-            "scope": format_scope(st.session_state.scope),
-            "default_target_name": st.session_state.target_name or "Not set",
-            "document_image": st.session_state.image_path,
-        }
-    )
-    st.markdown("#### Known outputs")
-    render_file_status(DEFAULT_OUTPUTS)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with feed_col:
-    render_activity_feed()
+        st.markdown("<div class='archive-card'>", unsafe_allow_html=True)
+        st.markdown("#### Workflow sequence")
+        st.markdown(
+            "1. Tree analysis\n"
+            "2. Consistency review\n"
+            "3. Research hints\n"
+            "4. Archival OSINT\n"
+            "5. Broad web OSINT\n"
+            "6. Evidence and proof assembly"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
-tab_dashboard, tab_guided, tab_tree, tab_research, tab_documents, tab_bundle = st.tabs(
-    [
-        "Dashboard",
-        "Guided workflow",
-        "Tree tools",
-        "Research",
-        "Documents & case assembly",
-        "Case bundle",
-    ]
-)
 
-with tab_dashboard:
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Reports ready", sum(1 for path in DEFAULT_OUTPUTS if file_exists(path)))
-    c2.metric("JSON exports", sum(1 for path in [TREE_JSON_FILE, CONSISTENCY_EXPORT_FILE, HINTS_EXPORT_FILE, CASE_BUNDLE_FILE] if file_exists(path)))
-    bundle = read_json_file(CASE_BUNDLE_FILE) or {}
-    c3.metric("Bundle artifacts", len(bundle.get("artifacts") or []))
-    c4.metric("Mapped people", (bundle.get("person_artifact_counts") or {}).get("people_mapped", 0))
-
-    preview_left, preview_right = st.columns(2)
-    with preview_left:
-        render_text_preview("Tree Structure Report", TREE_REPORT_FILE)
-        render_text_preview("Consistency Report", CONSISTENCY_REPORT_FILE)
-        render_text_preview("Research Hints Report", HINTS_REPORT_FILE)
-    with preview_right:
-        render_text_preview("Proof Summary Draft", PROOF_REPORT)
-        render_text_preview("Evidence Index", EVIDENCE_INDEX_FILE)
-        render_json_preview("Case Bundle Preview", CASE_BUNDLE_FILE)
-
-with tab_guided:
-    with st.form("guided-workflow-form"):
-        st.markdown("Run the core sequence: tree analysis → consistency review → research hints.")
-        guided_compile = st.checkbox("Compile proof summary after analysis", value=True)
-        guided_evidence = st.checkbox("Refresh evidence locker after analysis", value=False)
-        submitted = st.form_submit_button("Run guided workflow")
-    if submitted:
-        run_guided_workflow_ui(st.session_state.gedcom_path, st.session_state.scope, guided_compile, guided_evidence)
-        st.rerun()
-
-with tab_tree:
-    left, right = st.columns(2)
+def render_tree_tools_tab() -> None:
+    st.markdown("### Tree analysis tools")
+    left, right = st.columns([0.92, 1.08])
     with left:
         with st.form("tree-analysis-form"):
             st.markdown("#### Tree structure")
@@ -485,66 +557,126 @@ with tab_tree:
         render_text_preview("Hints report preview", HINTS_REPORT_FILE)
         render_json_preview("Hints JSON preview", HINTS_EXPORT_FILE)
 
-with tab_research:
-    left, right = st.columns(2)
-    with left:
-        with st.form("external-recon-form"):
-            st.markdown("#### External archival search")
-            external_target = st.text_input("Target name", value=st.session_state.target_name or st.session_state.scope)
-            external_birth = st.text_input("Birth year", value=st.session_state.birth_year)
-            external_death = st.text_input("Death year", value=st.session_state.death_year)
-            external_place = st.text_input("Place", value=st.session_state.place)
-            external_focus = st.text_input("Record focus", value=st.session_state.record_focus)
-            external_submit = st.form_submit_button("Run external recon")
-        if external_submit:
-            _, logs, error = run_with_capture(
-                "External recon",
-                run_external_recon,
-                external_target,
-                external_birth,
-                external_death,
-                external_place,
-                external_focus,
-                external_target or None,
-            )
-            if error:
-                add_activity("Run external archival search", error, [EXTERNAL_RECON_REPORT_FILE, CASE_BUNDLE_FILE], logs)
-            else:
-                add_activity("Run external archival search", "External archival recon report updated.", [EXTERNAL_RECON_REPORT_FILE, CASE_BUNDLE_FILE], logs)
-            st.rerun()
 
-        render_text_preview("External recon report", EXTERNAL_RECON_REPORT_FILE)
+
+def render_file_browser_tab() -> None:
+    st.markdown("### Report and file browser")
+    files = list_workspace_files()
+    if not files:
+        st.info("No browseable workspace files are available yet.")
+        return
+
+    left, right = st.columns([0.72, 1.28])
+    with left:
+        selected_file = st.selectbox(
+            "Choose a file",
+            files,
+            index=files.index(browser_default_file()) if browser_default_file() in files else 0,
+        )
+        st.session_state.selected_browser_file = selected_file
+        path = Path(selected_file)
+        st.markdown("<div class='archive-card'>", unsafe_allow_html=True)
+        st.markdown("#### File details")
+        st.write(
+            {
+                "name": path.name,
+                "suffix": path.suffix.lower() or "none",
+                "size_bytes": path.stat().st_size,
+                "modified": path.stat().st_mtime,
+            }
+        )
+        with path.open("rb") as handle:
+            st.download_button("Download file", handle.read(), file_name=path.name)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with right:
-        with st.form("broad-recon-form"):
-            st.markdown("#### Broad web recon")
-            broad_name = st.text_input("Person or family target", value=st.session_state.target_name or st.session_state.scope, key="broad_name_input")
-            broad_birth = st.text_input("Birth year/date", value=st.session_state.birth_year, key="broad_birth_input")
-            broad_death = st.text_input("Death year/date", value=st.session_state.death_year, key="broad_death_input")
-            broad_locations = st.text_input("Locations", value=st.session_state.broad_locations)
-            broad_records = st.text_input("Records of interest", value=st.session_state.records_of_interest)
-            broad_goal = st.text_input("Research goal", value=st.session_state.research_goal)
-            broad_submit = st.form_submit_button("Run broad web recon")
-        if broad_submit:
-            params = {
-                "name": broad_name,
-                "birth_date": broad_birth,
-                "death_date": broad_death,
-                "locations": broad_locations,
-                "records_of_interest": broad_records,
-                "research_goal": broad_goal,
-            }
-            _, logs, error = run_with_capture("Broad web recon", run_broad_recon, params)
-            if error:
-                add_activity("Run broad web recon", error, [BROAD_RECON_REPORT_FILE, CASE_BUNDLE_FILE], logs)
+        suffix = Path(selected_file).suffix.lower()
+        if suffix == ".json":
+            payload = read_json_file(selected_file)
+            if payload is None:
+                st.warning("Unable to parse this JSON file.")
             else:
-                add_activity("Run broad web recon", "Broad web recon report updated.", [BROAD_RECON_REPORT_FILE, CASE_BUNDLE_FILE], logs)
-            st.rerun()
+                st.json(payload)
+        elif suffix in {".jpg", ".jpeg", ".png"}:
+            st.image(selected_file, caption=selected_file, use_container_width=True)
+        else:
+            content = read_text_file(selected_file)
+            if content:
+                st.text_area("File preview", value=content, height=620, key=f"browser::{selected_file}")
+            else:
+                st.info("Preview not available for this file type. Use download instead.")
 
-        render_text_preview("Broad web recon report", BROAD_RECON_REPORT_FILE)
 
-with tab_documents:
-    left, right = st.columns(2)
+
+def render_bundle_explorer() -> None:
+    bundle = read_json_file(CASE_BUNDLE_FILE)
+    if bundle is None:
+        st.info("Run a workflow that generates `Case_Bundle.json` first.")
+        return
+
+    tree_section = (bundle.get("sections") or {}).get("tree") or {}
+    consistency_section = (bundle.get("sections") or {}).get("consistency") or {}
+    hints_section = (bundle.get("sections") or {}).get("hints") or {}
+    person_artifacts = bundle.get("person_artifacts") or []
+    artifact_counts = bundle.get("artifact_counts") or {}
+    person_counts = bundle.get("person_artifact_counts") or {}
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("People in scope", (tree_section.get("counts") or {}).get("people_in_scope", 0))
+    c2.metric("Issues", (consistency_section.get("counts") or {}).get("issues_found", 0))
+    c3.metric("Hints", (hints_section.get("counts") or {}).get("hints_generated", 0))
+    c4.metric("Artifacts", len(bundle.get("artifacts") or []))
+
+    st.markdown("#### Bundle context")
+    st.write(
+        {
+            "generated_at": bundle.get("generated_at"),
+            "input_file": bundle.get("input_file"),
+            "scope": bundle.get("scope"),
+            "available_sections": bundle.get("available_sections"),
+        }
+    )
+
+    left, right = st.columns([1.15, 0.85])
+    with left:
+        st.markdown("#### Person explorer")
+        if not person_artifacts:
+            st.caption("No person mappings yet. Run tree analysis to populate them.")
+        else:
+            options = {
+                f"{person['person_name']} ({person['person_id']})": person for person in person_artifacts
+            }
+            selected_label = st.selectbox("Choose a person", list(options.keys()))
+            selected = options[selected_label]
+            st.write(
+                {
+                    "person_id": selected.get("person_id"),
+                    "primary_scope_match": selected.get("is_primary_scope_match"),
+                    "name_variants": selected.get("name_variants"),
+                }
+            )
+            st.markdown("**Case artifact refs**")
+            st.json(selected.get("case_artifact_refs") or [])
+            st.markdown("**Direct artifact refs**")
+            st.json(selected.get("direct_artifact_refs") or [])
+            st.markdown("**Related consistency issues**")
+            st.json(selected.get("related_issue_refs") or [])
+            st.markdown("**Related research hints**")
+            st.json(selected.get("related_hint_refs") or [])
+
+    with right:
+        st.markdown("#### Artifact summaries")
+        st.json(artifact_counts)
+        st.markdown("#### Person mapping summaries")
+        st.json(person_counts)
+
+    render_json_preview("Raw case bundle JSON", CASE_BUNDLE_FILE)
+
+
+
+def render_documents_tab() -> None:
+    st.markdown("### Documents and case assembly")
+    left, right = st.columns([0.92, 1.08])
     with left:
         with st.form("transcription-form"):
             st.markdown("#### Document transcription")
@@ -584,5 +716,46 @@ with tab_documents:
         render_text_preview("Proof summary preview", PROOF_REPORT)
         render_text_preview("Evidence index preview", EVIDENCE_INDEX_FILE)
 
+
+render_sidebar()
+
+st.markdown(
+    """
+    <div class="archive-hero">
+        <h1 style="margin:0; color:#f7ecd9;">Genealogy Intelligence App</h1>
+        <p style="margin:0.45rem 0 0 0; color:#f2e3c9; font-size:1.04rem;">
+            A warm archival workspace for case review, report browsing, and operational OSINT across genealogy evidence.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+tab_dashboard, tab_operations, tab_tree, tab_files, tab_bundle, tab_documents = st.tabs(
+    [
+        "Dashboard",
+        "Operations",
+        "Tree tools",
+        "Reports & files",
+        "People & case bundle",
+        "Documents & evidence",
+    ]
+)
+
+with tab_dashboard:
+    render_dashboard()
+
+with tab_operations:
+    render_operations_tab()
+
+with tab_tree:
+    render_tree_tools_tab()
+
+with tab_files:
+    render_file_browser_tab()
+
 with tab_bundle:
     render_bundle_explorer()
+
+with tab_documents:
+    render_documents_tab()
