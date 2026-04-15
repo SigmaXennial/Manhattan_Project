@@ -731,6 +731,32 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown(
+    """
+    <div class="archive-card" style="margin-top:0.2rem;">
+        <h3 style="margin-top:0;">Desktop link</h3>
+        <p style="margin-bottom:0.75rem;">Use this quick link to open the local research workspace in a browser tab.</p>
+        <a
+            href="http://localhost:3000"
+            target="_blank"
+            style="
+                display:inline-block;
+                padding:0.7rem 1rem;
+                border-radius:999px;
+                background:#8a5a2b;
+                color:#fff8ef;
+                text-decoration:none;
+                font-weight:700;
+                border:1px solid #7a4b24;
+            "
+        >
+            Open Genealogy Intelligence App
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 tab_dashboard, tab_operations, tab_tree, tab_files, tab_bundle, tab_documents = st.tabs(
     [
         "Dashboard",
