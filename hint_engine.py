@@ -4,6 +4,7 @@ from collections import Counter
 
 from gedcom_parser import parse_gedcom, resolve_scope
 from genealogy_models import Event, Hint, Person, TreeData
+from json_export import HINTS_EXPORT_FILE, export_hints_json
 from report_utils import write_report
 
 REPORT_FILE = "Research_Hints_Report.txt"
@@ -143,7 +144,7 @@ def build_person_hints(person: Person) -> list[Hint]:
                     [f"Which census years should contain {person.primary_name}?"],
                 )
             )
-
+        
     if born_year:
         military_queries = []
         if 1730 <= born_year <= 1767:
@@ -268,7 +269,7 @@ def run_hint_generation(gedcom_path: str, target_scope: str | None = None) -> tu
         [
             (
                 "Summary",
-                f"People reviewed: {len(person_ids)}\nFamilies reviewed: {len(family_ids)}\nHints generated: {len(hints)}",
+                f"People reviewed: {len(person_ids)}\nFamilies reviewed: {len(family_ids)}\nHints generated: {len(hints)}\nJSON export: {HINTS_EXPORT_FILE}",
             ),
             ("Hints by Person / Family", format_hints(hints)),
         ],
@@ -276,12 +277,14 @@ def run_hint_generation(gedcom_path: str, target_scope: str | None = None) -> tu
         confidence_notes=[
             "Hints are research suggestions, not proven facts.",
             "Prioritize hints with direct record types and clear locality clues before broader web searching.",
+            "The JSON export is a structured hint list intended for future local queue or review interfaces.",
         ],
         next_steps=[
             "Use the external archival search workflow for the strongest hint targets.",
             "Compare new findings against the consistency report before updating the tree.",
         ],
     )
+    export_hints_json(gedcom_path, scope_name, person_ids, family_ids, hints, HINTS_EXPORT_FILE)
     return REPORT_FILE, hints
 
 
@@ -290,6 +293,7 @@ def main() -> None:
     target_scope = input("Target person or family (optional): ").strip() or None
     output, hints = run_hint_generation(gedcom_path, target_scope)
     print(f"\n[+] Research hints complete. Report written to {output}")
+    print(f"[+] Structured JSON export written to {HINTS_EXPORT_FILE}")
 
     if hints:
         run_search = input("Run archival search for this scope now? [y/N]: ").strip().lower()

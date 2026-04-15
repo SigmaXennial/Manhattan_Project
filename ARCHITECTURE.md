@@ -11,6 +11,7 @@ The long-term vision remains a broader genealogy platform with family tree manag
 - local LLM and vision support through Ollama
 - public archive and web research connectors
 - plain-text report outputs
+- lightweight JSON exports for future local reuse
 
 ## Phased Roadmap
 
@@ -28,6 +29,7 @@ Current repository scope:
 - document transcription
 - evidence indexing
 - proof-summary drafting
+- structured JSON exports for tree, consistency, and hint data
 
 Phase 1 outputs are intentionally plain-text and researcher review is required before any tree change is accepted.
 
@@ -39,6 +41,8 @@ Reserved next-step direction:
 - reusable person/family records across workflows
 - stronger evidence linking and source tracking
 - better workflow chaining and operator shortcuts
+
+The current JSON exports are meant to reduce migration friction into this phase.
 
 ### Phase 3 — Local UI / desktop-style experience
 
@@ -71,6 +75,7 @@ Explicitly deferred:
 
 - `genealogy_models.py`
 - `gedcom_parser.py`
+- `json_export.py`
 
 This layer standardizes:
 
@@ -80,6 +85,7 @@ This layer standardizes:
 - `SourceReference`
 - `Hint`
 - `ConsistencyIssue`
+- JSON payloads for local caches and later UI consumption
 
 ### 3. Analysis Layer
 
@@ -91,6 +97,8 @@ This layer standardizes:
 
 ### 4. Output Layer
 
+Plain-text outputs:
+
 - `Tree_Structure_Report.txt`
 - `Consistency_Report.txt`
 - `Research_Hints_Report.txt`
@@ -99,6 +107,12 @@ This layer standardizes:
 - `Transcription_Report.txt`
 - `Evidence_Index.txt`
 - `Proof_Summary_Draft.txt`
+
+Structured local cache outputs:
+
+- `Tree_Data.json`
+- `Consistency_Data.json`
+- `Research_Hints_Data.json`
 
 ## Domain Boundaries for the End State
 
@@ -150,8 +164,7 @@ Reserved only — not implemented here:
 
 ### Near-term
 
-- filesystem for GEDCOM files, document images, and reports
-- optional structured local caches in a future phase
+- filesystem for GEDCOM files, document images, reports, and JSON caches
 - no database requirement in the current implementation
 
 ### Mid-term
@@ -176,3 +189,4 @@ That means the Phase 1 workflows are designed to produce:
 - AI summaries clearly separated from extracted data
 - hints framed as suggestions, not facts
 - reviewable plain-text outputs suitable for archival workflows
+- structured JSON exports that mirror the reviewed local data without claiming additional certainty

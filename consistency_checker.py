@@ -4,7 +4,8 @@ import re
 
 from gedcom_parser import parse_gedcom, resolve_scope
 from genealogy_models import ConsistencyIssue, Family, Person, TreeData
-from report_utils import format_list, write_report
+from json_export import CONSISTENCY_EXPORT_FILE, export_consistency_json
+from report_utils import write_report
 
 REPORT_FILE = "Consistency_Report.txt"
 
@@ -206,7 +207,7 @@ def run_consistency_check(gedcom_path: str, target_scope: str | None = None) -> 
     sections = [
         (
             "Summary",
-            f"People reviewed: {len(person_ids)}\nFamilies reviewed: {len(family_ids)}\nIssues found: {len(issues)}",
+            f"People reviewed: {len(person_ids)}\nFamilies reviewed: {len(family_ids)}\nIssues found: {len(issues)}\nJSON export: {CONSISTENCY_EXPORT_FILE}",
         ),
         ("Findings by Rule", build_issue_text(issues)),
     ]
@@ -221,12 +222,14 @@ def run_consistency_check(gedcom_path: str, target_scope: str | None = None) -> 
         confidence_notes=[
             "These findings are deterministic checks and should be reviewed against the cited records.",
             "Absence of an issue does not prove that the tree is correct; it only means these rules did not detect a problem.",
+            "The JSON export is a structured issue list intended for future local data workflows.",
         ],
         next_steps=[
             "Review each high-severity chronology conflict against the original GEDCOM citations.",
             "Use the hint workflow to identify records that could resolve unresolved dates or duplicate questions.",
         ],
     )
+    export_consistency_json(gedcom_path, scope_name, person_ids, family_ids, issues, CONSISTENCY_EXPORT_FILE)
     return REPORT_FILE
 
 
@@ -235,6 +238,7 @@ def main() -> None:
     target_scope = input("Target person or family (optional): ").strip() or None
     output = run_consistency_check(gedcom_path, target_scope)
     print(f"\n[+] Consistency review complete. Report written to {output}")
+    print(f"[+] Structured JSON export written to {CONSISTENCY_EXPORT_FILE}")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ SCRIPTS = [
     "analyze_tree.py",
     "gedcom_parser.py",
     "genealogy_models.py",
+    "json_export.py",
     "consistency_checker.py",
     "hint_engine.py",
     "external_recon.py",
@@ -28,6 +29,12 @@ OPTIONAL_IMAGE_TARGETS = [
     "document_Page_5.jpg",
     "document_Page_6.jpg",
     "document_Page_7.jpg",
+]
+
+OPTIONAL_JSON_EXPORTS = [
+    "Tree_Data.json",
+    "Consistency_Data.json",
+    "Research_Hints_Data.json",
 ]
 
 
@@ -60,6 +67,14 @@ def check_system() -> None:
             print(f"  [OK]  {image_path}")
     else:
         print("  [!!]  No transcription-ready document images were found.")
+
+    print("\n[*] Checking optional structured exports:")
+    available_exports = [path for path in OPTIONAL_JSON_EXPORTS if Path(path).exists()]
+    if available_exports:
+        for export_path in available_exports:
+            print(f"  [OK]  {export_path}")
+    else:
+        print("  [--]  No JSON exports generated yet.")
 
     if not missing:
         print("\n[+] SYSTEM READY: Core genealogy workflows are present.")

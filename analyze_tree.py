@@ -6,9 +6,11 @@ from langchain_ollama import ChatOllama
 
 from gedcom_parser import parse_gedcom, resolve_scope
 from genealogy_models import Event, Family, Person, TreeData
-from report_utils import format_list, write_report
+from json_export import export_tree_json
+from report_utils import write_report
 
 REPORT_FILE = "Tree_Structure_Report.txt"
+JSON_FILE = "Tree_Data.json"
 
 
 def format_event(event: Event | None) -> str:
@@ -135,6 +137,7 @@ def run_tree_analysis(gedcom_path: str, target_scope: str | None = None) -> str:
                     f"People in scope: {len(person_ids)}",
                     f"Families in scope: {len(family_ids)}",
                     f"Cataloged sources: {len(tree.sources)}",
+                    f"JSON export: {JSON_FILE}",
                 ]
             ),
         ),
@@ -153,12 +156,14 @@ def run_tree_analysis(gedcom_path: str, target_scope: str | None = None) -> str:
         confidence_notes=[
             "Structured People and Structured Families are deterministic GEDCOM extractions.",
             "The AI narrative is a researcher aid and should be treated as a summary, not authority.",
+            "The JSON export is a local structured cache intended for Phase 2-ready reuse.",
         ],
         next_steps=[
             "Run the consistency checker to surface chronology and relationship anomalies.",
             "Run the research hint engine to identify missing records and archive targets.",
         ],
     )
+    export_tree_json(tree, person_ids, family_ids, scope_name, narrative, JSON_FILE)
     return REPORT_FILE
 
 
@@ -167,6 +172,7 @@ def main() -> None:
     target_scope = input("Target person or family (optional): ").strip() or None
     output = run_tree_analysis(gedcom_path, target_scope)
     print(f"\n[+] Tree analysis complete. Report written to {output}")
+    print(f"[+] Structured JSON export written to {JSON_FILE}")
 
 
 if __name__ == "__main__":

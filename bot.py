@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from analyze_tree import JSON_FILE as TREE_JSON_FILE
 from analyze_tree import run_tree_analysis
 from compiler import compile_proof_summary
 from consistency_checker import run_consistency_check
@@ -12,6 +13,7 @@ from evidence_locker import organize_evidence
 from external_recon import run_external_recon
 from hint_engine import run_hint_generation
 from inventory import check_system
+from json_export import CONSISTENCY_EXPORT_FILE, HINTS_EXPORT_FILE
 from master_investigator import get_research_parameters, run_broad_recon
 from transcribe_doc import transcribe_document
 
@@ -53,6 +55,13 @@ def view_log() -> None:
         return
     print(f"\n--- {LOG_FILE} ---\n")
     print(path.read_text(encoding="utf-8", errors="replace")[-5000:])
+
+
+def show_json_exports() -> None:
+    print("\n--- Structured JSON Exports ---")
+    for path in [TREE_JSON_FILE, CONSISTENCY_EXPORT_FILE, HINTS_EXPORT_FILE]:
+        status = "[OK]" if Path(path).exists() else "[--]"
+        print(f"{status} {path}")
 
 
 def run_guided_workflow(current_gedcom: str, current_target: str) -> tuple[str, str | None]:
@@ -107,10 +116,11 @@ def main_menu() -> None:
         print("System")
         print(" 10. View logs")
         print(" 11. Health check")
-        print(" 12. Exit")
+        print(" 12. View JSON export status")
+        print(" 13. Exit")
         print("-" * 60)
 
-        choice = input("Select workflow (1-12): ").strip()
+        choice = input("Select workflow (1-13): ").strip()
 
         if choice == "1":
             current_gedcom, current_target = prompt_tree_scope(current_gedcom, current_target)
@@ -172,6 +182,9 @@ def main_menu() -> None:
             check_system()
             pause()
         elif choice == "12":
+            show_json_exports()
+            pause()
+        elif choice == "13":
             log_event("SHUTDOWN", "Operator closed the genealogy operations console.")
             print("\n[+] Powering down.")
             break
