@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from dataclasses import asdict
 from datetime import datetime
@@ -16,6 +17,19 @@ HINTS_EXPORT_FILE = "Research_Hints_Data.json"
 CASE_BUNDLE_FILE = "Case_Bundle.json"
 ARTIFACT_PATTERNS = ["*.txt", "*.json", "*.ged", "*.jpg", "*.jpeg", "*.png", "*.pdf"]
 EXCLUDED_ARTIFACTS = {CASE_BUNDLE_FILE, "Master_Case_Log.txt"}
+DEFAULT_CASE_OUTPUTS = {
+    "Tree_Structure_Report.txt",
+    "Consistency_Report.txt",
+    "Research_Hints_Report.txt",
+    "External_Recon_Report.txt",
+    "Broad_Web_Recon_Report.txt",
+    "Transcription_Report.txt",
+    "Evidence_Index.txt",
+    "Proof_Summary_Draft.txt",
+    TREE_EXPORT_FILE,
+    CONSISTENCY_EXPORT_FILE,
+    HINTS_EXPORT_FILE,
+}
 
 
 def write_json(output_path: str, payload: dict[str, Any]) -> str:
@@ -46,6 +60,8 @@ def base_bundle(input_file: str, scope_name: str) -> dict[str, Any]:
         "available_sections": [],
         "artifacts": [],
         "artifact_counts": {},
+        "person_artifacts": [],
+        "person_artifact_counts": {},
     }
 
 
@@ -56,6 +72,8 @@ def ensure_bundle(output_path: str, input_file: str = "", scope_name: str = "") 
         bundle.setdefault("available_sections", [])
         bundle.setdefault("artifacts", [])
         bundle.setdefault("artifact_counts", {})
+        bundle.setdefault("person_artifacts", [])
+        bundle.setdefault("person_artifact_counts", {})
         return bundle
     return base_bundle(input_file, scope_name)
 
@@ -70,6 +88,8 @@ def update_case_bundle(section_name: str, section_payload: dict[str, Any], outpu
     else:
         bundle.setdefault("artifacts", [])
         bundle.setdefault("artifact_counts", {})
+        bundle.setdefault("person_artifacts", [])
+        bundle.setdefault("person_artifact_counts", {})
 
     bundle["generated_at"] = timestamp_label()
     bundle["sections"][section_name] = section_payload
@@ -157,6 +177,190 @@ def artifact_entry(path: Path) -> dict[str, Any]:
     }
 
 
+def normalize_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (value or "").lower()).strip()
+
+
+def unique_strings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        clean_value = value.strip()
+        if clean_value and clean_value not in seen:
+            seen.add(clean_value)
+            ordered.append(clean_value)
+    return ordered
+
+
+def person_name_candidates(person_payload: dict[str, Any]) -> list[str]:
+    names = [str(person_payload.get("primary_name", ""))]
+    given_name = str(person_payload.get("given_name", "")).strip()
+    surname = str(person_payload.get("surname", "")).strip()
+    combined_name = " ".join(part for part in [given_name, surname] if part).strip()
+    if combined_name:
+        names.append(combined_name)
+    names.extend(str(name) for name in person_payload.get("name_variants", []) if str(name).strip())
+    return unique_strings(names)
+
+
+def file_reference(entry: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "file_name": entry.get("file_name", ""),
+        "relative_path": entry.get("relative_path", ""),
+        "artifact_type": entry.get("artifact_type", "report"),
+    }
+
+
+def artifact_matches_bundle(entry: dict[str, Any], bundle: dict[str, Any]) -> bool:
+    bundle_input = str(bundle.get("input_file", "")).strip()
+    bundle_scope = normalize_text(str(bundle.get("scope", "")))
+    artifact_input = str(entry.get("input_file", "")).strip()
+    artifact_scope = normalize_text(str(entry.get("scope", "")))
+    file_name = str(entry.get("file_name", ""))
+
+    if file_name in DEFAULT_CASE_OUTPUTS:
+        return True
+    if bundle_input and artifact_input == bundle_input:
+        return True
+    if bundle_scope and artifact_scope and artifact_scope == bundle_scope:
+        return True
+    return False
+
+
+def artifact_matches_person(entry: dict[str, Any], person_payload: dict[str, Any]) -> bool:
+    artifact_scope = normalize_text(str(entry.get("scope", "")))
+    artifact_input = normalize_text(str(entry.get("input_file", "")))
+    if not artifact_scope and not artifact_input:
+        return False
+
+    person_id = str(person_payload.get("id", "")).strip()
+    normalized_person_id = normalize_text(person_id)
+    names = [normalize_text(name) for name in person_name_candidates(person_payload)]
+    haystacks = [value for value in [artifact_scope, artifact_input] if value]
+
+    for haystack in haystacks:
+        if normalized_person_id and haystack == normalized_person_id:
+            return True
+        for name in names:
+            if not name or len(name) < 4:
+                continue
+            if haystack == name or name in haystack:
+                return True
+    return False
+
+
+def person_matches_scope(person_payload: dict[str, Any], scope_name: str) -> bool:
+    normalized_scope = normalize_text(scope_name)
+    if not normalized_scope or normalized_scope == "entire tree":
+        return False
+
+    person_id = normalize_text(str(person_payload.get("id", "")))
+    if person_id and normalized_scope == person_id:
+        return True
+
+    for name in person_name_candidates(person_payload):
+        normalized_name = normalize_text(name)
+        if not normalized_name or len(normalized_name) < 4:
+            continue
+        if normalized_scope == normalized_name or normalized_name in normalized_scope or normalized_scope in normalized_name:
+            return True
+    return False
+
+
+def issue_reference(issue: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "issue_type": issue.get("issue_type", ""),
+        "severity": issue.get("severity", "medium"),
+        "affected_ids": issue.get("affected_ids", []),
+    }
+
+
+def hint_reference(hint: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "target_id": hint.get("target_id", ""),
+        "target_name": hint.get("target_name", ""),
+        "hint_type": hint.get("hint_type", ""),
+        "confidence": hint.get("confidence", "medium"),
+    }
+
+
+def build_person_artifact_mapping(bundle: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    tree_section = bundle.get("sections", {}).get("tree") or {}
+    people = tree_section.get("people", [])
+    if not people:
+        return [], {
+            "people_mapped": 0,
+            "people_with_direct_artifacts": 0,
+            "people_with_issue_refs": 0,
+            "people_with_hint_refs": 0,
+        }
+
+    consistency_section = bundle.get("sections", {}).get("consistency") or {}
+    hints_section = bundle.get("sections", {}).get("hints") or {}
+    issues = consistency_section.get("issues", [])
+    hints = hints_section.get("hints", [])
+    artifacts = bundle.get("artifacts", [])
+    relevant_artifacts = [entry for entry in artifacts if artifact_matches_bundle(entry, bundle)] or artifacts
+    case_artifact_refs = [file_reference(entry) for entry in relevant_artifacts]
+
+    person_entries: list[dict[str, Any]] = []
+    people_with_direct_artifacts = 0
+    people_with_issue_refs = 0
+    people_with_hint_refs = 0
+
+    for person in people:
+        person_id = str(person.get("id", ""))
+        family_ids = {
+            str(person.get("family_as_child", "")).strip(),
+            *(str(family_id).strip() for family_id in person.get("families_as_spouse", [])),
+        }
+        family_ids.discard("")
+
+        direct_artifact_refs = [
+            file_reference(entry)
+            for entry in relevant_artifacts
+            if artifact_matches_person(entry, person)
+        ]
+        related_issue_refs = [
+            issue_reference(issue)
+            for issue in issues
+            if person_id in issue.get("affected_ids", []) or family_ids.intersection(issue.get("affected_ids", []))
+        ]
+        related_hint_refs = [
+            hint_reference(hint)
+            for hint in hints
+            if hint.get("target_id") == person_id or hint.get("target_id") in family_ids
+        ]
+
+        if direct_artifact_refs:
+            people_with_direct_artifacts += 1
+        if related_issue_refs:
+            people_with_issue_refs += 1
+        if related_hint_refs:
+            people_with_hint_refs += 1
+
+        person_entries.append(
+            {
+                "person_id": person_id,
+                "person_name": person.get("primary_name", "Unknown"),
+                "name_variants": person_name_candidates(person),
+                "is_primary_scope_match": person_matches_scope(person, str(bundle.get("scope", ""))),
+                "case_artifact_refs": case_artifact_refs,
+                "direct_artifact_refs": direct_artifact_refs,
+                "related_issue_refs": related_issue_refs,
+                "related_hint_refs": related_hint_refs,
+            }
+        )
+
+    counts = {
+        "people_mapped": len(person_entries),
+        "people_with_direct_artifacts": people_with_direct_artifacts,
+        "people_with_issue_refs": people_with_issue_refs,
+        "people_with_hint_refs": people_with_hint_refs,
+    }
+    return person_entries, counts
+
+
 def refresh_case_bundle_artifacts(input_file: str = "", scope_name: str = "", output_path: str = CASE_BUNDLE_FILE) -> str:
     bundle = ensure_bundle(output_path, input_file, scope_name)
     if input_file and not bundle.get("input_file"):
@@ -168,6 +372,9 @@ def refresh_case_bundle_artifacts(input_file: str = "", scope_name: str = "", ou
     bundle["generated_at"] = timestamp_label()
     bundle["artifacts"] = artifacts
     bundle["artifact_counts"] = dict(Counter(entry["artifact_type"] for entry in artifacts))
+    person_artifacts, person_artifact_counts = build_person_artifact_mapping(bundle)
+    bundle["person_artifacts"] = person_artifacts
+    bundle["person_artifact_counts"] = person_artifact_counts
     return write_json(output_path, bundle)
 
 

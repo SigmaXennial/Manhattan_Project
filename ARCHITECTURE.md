@@ -120,7 +120,7 @@ Structured local cache outputs:
 - `Research_Hints_Data.json`
 - `Case_Bundle.json`
 
-`Case_Bundle.json` is the preferred Phase 2-ready handoff artifact because it centralizes the active scope’s structured tree data, deterministic issues, generated hints, and artifact metadata into one file.
+`Case_Bundle.json` is the preferred Phase 2-ready handoff artifact because it centralizes the active scope’s structured tree data, deterministic issues, generated hints, artifact metadata, and person-centered artifact mappings into one file.
 
 ## Domain Boundaries for the End State
 

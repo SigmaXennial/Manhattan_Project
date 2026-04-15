@@ -87,6 +87,13 @@ It now also carries an **artifact/evidence section** with metadata for local fil
 - transcription and document files
 - evidence index artifacts
 
+It also now includes a **person-centered artifact mapping** so each scoped person can be linked to:
+
+- shared case artifacts relevant to the active bundle
+- directly matched person-targeted artifacts
+- related consistency issues
+- related research hints
+
 ## Technology Stack
 
 - `langchain-ollama` with `ChatOllama` for local LLM and vision tasks
