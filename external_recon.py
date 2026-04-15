@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import requests
 
+from json_export import refresh_case_bundle_artifacts
 from report_utils import write_report
 
 REPORT_FILE = "External_Recon_Report.txt"
@@ -108,11 +109,12 @@ def run_external_recon(
     except Exception as exc:
         newspaper_failure = f"Chronicling America search failed: {exc}"
 
+    scope_name = target_scope or target_name
     write_report(
         REPORT_FILE,
         "External Recon Report",
         "Public archival APIs",
-        target_scope or target_name,
+        scope_name,
         [
             (
                 "Search Profile",
@@ -143,6 +145,7 @@ def run_external_recon(
             "Use the broad web recon workflow if public archival search returns thin results.",
         ],
     )
+    refresh_case_bundle_artifacts(scope_name=scope_name)
     print(f"\n[+] External archival search complete. Report written to {REPORT_FILE}")
     return REPORT_FILE
 

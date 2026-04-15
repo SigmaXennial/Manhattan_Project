@@ -6,6 +6,7 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage
 from langchain_ollama import ChatOllama
 
+from json_export import refresh_case_bundle_artifacts
 from report_utils import write_report
 
 REPORT_FILE = "Transcription_Report.txt"
@@ -56,6 +57,7 @@ def transcribe_document(image_path: str = "document.jpg") -> str | None:
             "Attach the transcription to the evidence locker if it contributes to the active case.",
         ],
     )
+    refresh_case_bundle_artifacts(scope_name=image_path)
     print(response)
     print(f"\n[+] Transcription complete. Report written to {REPORT_FILE}")
     return REPORT_FILE

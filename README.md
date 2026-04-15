@@ -16,6 +16,7 @@ This repository now implements **Phase 1** of a broader genealogy intelligence p
 - evidence indexing and proof-summary draft assembly
 - Phase 2-ready local JSON exports for structured reuse
 - a combined case bundle JSON for downstream local tooling
+- artifact and evidence metadata inside the case bundle
 
 The project remains intentionally **local-only and CLI-first**. It does not yet implement collaboration, hosted accounts, subscriptions, or DNA workflows.
 
@@ -52,7 +53,7 @@ The operations console includes grouped workflows for:
 - `gedcom_parser.py` — reusable GEDCOM parsing and scope resolution
 - `consistency_checker.py` — deterministic chronology and relationship validation
 - `hint_engine.py` — research hint generation from missing facts and family structure
-- `json_export.py` — lightweight structured JSON export helpers for local reuse and bundle assembly
+- `json_export.py` — lightweight structured JSON export helpers for local reuse, bundle assembly, and artifact metadata
 - `report_utils.py` — shared plain-text report formatting helpers
 - `ARCHITECTURE.md` — phased roadmap and future-ready boundaries
 
@@ -78,6 +79,14 @@ Structured JSON outputs:
 
 `Case_Bundle.json` is the combined local package that merges the active scope’s tree, consistency, and hint sections into one reusable artifact.
 
+It now also carries an **artifact/evidence section** with metadata for local files such as:
+
+- generated reports
+- structured JSON exports
+- GEDCOM inputs
+- transcription and document files
+- evidence index artifacts
+
 ## Technology Stack
 
 - `langchain-ollama` with `ChatOllama` for local LLM and vision tasks
@@ -95,6 +104,7 @@ Implemented now:
 - local report generation
 - local JSON export for structured reuse
 - combined case bundle JSON for downstream local tooling
+- artifact and evidence metadata in the case bundle
 - AI-assisted but evidence-aware research support
 - CLI-first orchestration through `bot.py`
 

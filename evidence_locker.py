@@ -4,6 +4,8 @@ import re
 import shutil
 from pathlib import Path
 
+from json_export import refresh_case_bundle_artifacts
+
 BASE_DIR = Path("Evidence_Locker")
 
 
@@ -82,6 +84,7 @@ def organize_evidence(case_name: str | None = None) -> str:
         )
 
     Path("Evidence_Index.txt").write_text("\n".join(index_lines).strip() + "\n", encoding="utf-8")
+    refresh_case_bundle_artifacts(scope_name=case_name or "General Research")
     print(f"\n[+] Evidence locker refreshed. Index written to Evidence_Index.txt")
     return "Evidence_Index.txt"
 

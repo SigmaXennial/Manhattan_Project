@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import asdict
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +14,8 @@ TREE_EXPORT_FILE = "Tree_Data.json"
 CONSISTENCY_EXPORT_FILE = "Consistency_Data.json"
 HINTS_EXPORT_FILE = "Research_Hints_Data.json"
 CASE_BUNDLE_FILE = "Case_Bundle.json"
+ARTIFACT_PATTERNS = ["*.txt", "*.json", "*.ged", "*.jpg", "*.jpeg", "*.png", "*.pdf"]
+EXCLUDED_ARTIFACTS = {CASE_BUNDLE_FILE, "Master_Case_Log.txt"}
 
 
 def write_json(output_path: str, payload: dict[str, Any]) -> str:
@@ -40,7 +44,20 @@ def base_bundle(input_file: str, scope_name: str) -> dict[str, Any]:
             "hints": None,
         },
         "available_sections": [],
+        "artifacts": [],
+        "artifact_counts": {},
     }
+
+
+def ensure_bundle(output_path: str, input_file: str = "", scope_name: str = "") -> dict[str, Any]:
+    bundle = read_json(output_path)
+    if bundle:
+        bundle.setdefault("sections", {"tree": None, "consistency": None, "hints": None})
+        bundle.setdefault("available_sections", [])
+        bundle.setdefault("artifacts", [])
+        bundle.setdefault("artifact_counts", {})
+        return bundle
+    return base_bundle(input_file, scope_name)
 
 
 def update_case_bundle(section_name: str, section_payload: dict[str, Any], output_path: str = CASE_BUNDLE_FILE) -> str:
@@ -50,12 +67,107 @@ def update_case_bundle(section_name: str, section_payload: dict[str, Any], outpu
 
     if not bundle or bundle.get("input_file") != input_file or bundle.get("scope") != scope_name:
         bundle = base_bundle(input_file, scope_name)
+    else:
+        bundle.setdefault("artifacts", [])
+        bundle.setdefault("artifact_counts", {})
 
     bundle["generated_at"] = timestamp_label()
     bundle["sections"][section_name] = section_payload
     bundle["available_sections"] = [
         name for name, value in bundle["sections"].items() if value is not None
     ]
+    write_json(output_path, bundle)
+    refresh_case_bundle_artifacts(input_file, scope_name, output_path)
+    return output_path
+
+
+def infer_text_metadata(path: Path) -> tuple[str, str]:
+    scope_name = ""
+    input_file = ""
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[:40]
+    except Exception:
+        return scope_name, input_file
+
+    for line in lines:
+        if line.startswith("Scope:") and not scope_name:
+            scope_name = line.split(":", 1)[1].strip()
+        elif line.startswith("Target:") and not scope_name:
+            scope_name = line.split(":", 1)[1].strip()
+        elif line.startswith("Target name:") and not scope_name:
+            scope_name = line.split(":", 1)[1].strip()
+        elif line.startswith("Input File:") and not input_file:
+            input_file = line.split(":", 1)[1].strip()
+        elif line.startswith("Case Folder:") and not input_file:
+            input_file = line.split(":", 1)[1].strip()
+    return scope_name, input_file
+
+
+def infer_json_metadata(path: Path) -> tuple[str, str]:
+    payload = read_json(str(path))
+    if not payload:
+        return "", ""
+    return str(payload.get("scope", "")), str(payload.get("input_file", ""))
+
+
+def artifact_type(path: Path) -> str:
+    suffix = path.suffix.lower()
+    name = path.name.lower()
+    if suffix == ".json":
+        return "structured_data"
+    if suffix == ".ged":
+        return "tree_file"
+    if suffix in {".jpg", ".jpeg", ".png", ".pdf"}:
+        return "document"
+    if "recon" in name:
+        return "research_report"
+    if "transcription" in name:
+        return "transcription_report"
+    if "index" in name or "locker" in name:
+        return "evidence_index"
+    if "proof" in name or "draft" in name or "summary" in name:
+        return "proof_report"
+    return "report"
+
+
+def gather_artifact_paths() -> list[Path]:
+    artifacts: dict[str, Path] = {}
+    for pattern in ARTIFACT_PATTERNS:
+        for path in Path(".").glob(pattern):
+            if path.is_file() and path.parent == Path(".") and path.name not in EXCLUDED_ARTIFACTS:
+                artifacts[str(path)] = path
+    return [artifacts[key] for key in sorted(artifacts.keys())]
+
+
+def artifact_entry(path: Path) -> dict[str, Any]:
+    if path.suffix.lower() == ".json":
+        scope_name, input_file = infer_json_metadata(path)
+    else:
+        scope_name, input_file = infer_text_metadata(path)
+
+    stat = path.stat()
+    return {
+        "file_name": path.name,
+        "relative_path": str(path),
+        "artifact_type": artifact_type(path),
+        "scope": scope_name,
+        "input_file": input_file,
+        "size_bytes": stat.st_size,
+        "modified_at": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
+def refresh_case_bundle_artifacts(input_file: str = "", scope_name: str = "", output_path: str = CASE_BUNDLE_FILE) -> str:
+    bundle = ensure_bundle(output_path, input_file, scope_name)
+    if input_file and not bundle.get("input_file"):
+        bundle["input_file"] = input_file
+    if scope_name and not bundle.get("scope"):
+        bundle["scope"] = scope_name
+
+    artifacts = [artifact_entry(path) for path in gather_artifact_paths()]
+    bundle["generated_at"] = timestamp_label()
+    bundle["artifacts"] = artifacts
+    bundle["artifact_counts"] = dict(Counter(entry["artifact_type"] for entry in artifacts))
     return write_json(output_path, bundle)
 
 

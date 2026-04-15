@@ -6,6 +6,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
+from json_export import refresh_case_bundle_artifacts
 from report_utils import write_report
 
 PROOF_REPORT = "Proof_Summary_Draft.txt"
@@ -88,6 +89,7 @@ REPORTS:
             "Promote unresolved conflicts back into the consistency and hint workflows for follow-up research.",
         ],
     )
+    refresh_case_bundle_artifacts(scope_name="Compiled case summary")
     print(f"\n[+] Proof summary draft written to {PROOF_REPORT}")
     return PROOF_REPORT
 

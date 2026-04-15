@@ -7,6 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 from langchain_tavily import TavilySearch
 
+from json_export import refresh_case_bundle_artifacts
 from report_utils import write_report
 
 REPORT_FILE = "Broad_Web_Recon_Report.txt"
@@ -167,6 +168,7 @@ def run_broad_recon(params: dict[str, str]) -> str:
             "Add useful URLs or excerpts to the evidence locker for later proof-summary assembly.",
         ],
     )
+    refresh_case_bundle_artifacts(scope_name=params["name"])
     print(f"\n[+] Broad web recon complete. Report written to {REPORT_FILE}")
     return REPORT_FILE
 
