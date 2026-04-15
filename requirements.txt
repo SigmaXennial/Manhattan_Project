@@ -50,6 +50,8 @@ regex==2026.1.15
 requests==2.32.5
 requests-toolbelt==1.0.0
 SQLAlchemy==2.0.48
+streamlit==1.49.1
+
 tavily-python==0.7.23
 tenacity==9.1.2
 tiktoken==0.12.0

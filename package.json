@@ -1,5 +1,8 @@
 {
-  "dependencies": {
-    "streamlit": "^2.51.2"
+  "name": "genealogy-intelligence-app",
+  "private": true,
+  "scripts": {
+    "dev": "python3 -m pip install -r requirements.txt && python3 -m streamlit run app.py --server.address 0.0.0.0 --server.port 3000",
+    "start": "python3 -m pip install -r requirements.txt && python3 -m streamlit run app.py --server.address 0.0.0.0 --server.port 3000"
   }
 }
