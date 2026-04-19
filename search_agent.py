@@ -9,6 +9,12 @@ from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
+tavily_key = os.getenv("TAVILY_API_KEY", "")
+if not tavily_key or tavily_key.startswith("your_"):
+    print("[-] ERROR: TAVILY_API_KEY is not set or is still a placeholder.")
+    print("    Copy .env.example to .env and add your real Tavily API key.")
+    sys.exit(1)
+
 
 def get_research_parameters():
     """

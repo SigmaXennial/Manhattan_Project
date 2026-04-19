@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 
 # --- TARGET ASSETS ---
 SCRIPTS = [
@@ -9,13 +10,30 @@ SCRIPTS = [
 
 DATA_FILES = ["bissell.ged", "document.jpg"]
 
+# Environment variables required by the application
+REQUIRED_ENV_VARS = ["TAVILY_API_KEY"]
+
 def check_system():
+    load_dotenv()
+
     print("\n--- MANHATTAN PROJECT: SYSTEM INVENTORY ---")
     print("Scanning local environment for core assets...\n")
     
     missing = []
 
-    print("[*] Checking Intelligence Modules:")
+    print("[*] Checking Environment Variables:")
+    env_ok = True
+    for var in REQUIRED_ENV_VARS:
+        value = os.getenv(var, "")
+        if not value or value.startswith("your_"):
+            print(f"  [!!]  UNSET/PLACEHOLDER: {var}")
+            env_ok = False
+        else:
+            print(f"  [OK]  {var}")
+    if env_ok:
+        print("  All required environment variables are configured.")
+
+    print("\n[*] Checking Intelligence Modules:")
     for script in SCRIPTS:
         if os.path.exists(script):
             print(f"  [OK]  {script}")
